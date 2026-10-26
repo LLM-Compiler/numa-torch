@@ -1,0 +1,959 @@
+diff --git a/LOCAL_SETUP.md b/LOCAL_SETUP.md
+new file mode 100644
+index 000000000..6250ab89e
+--- /dev/null
++++ b/LOCAL_SETUP.md
+@@ -0,0 +1,114 @@
++# Local setup (this machine)
++
++Living notes: conda envs, worktrees, and builds. Update as things change.
++
++## Conda
++
++| Env | Python | Purpose |
++|-----|--------|---------|
++| `base` | 3.13 | Default Miniconda env; not used for PyTorch/Triton work. |
++| `triton_cpu_integrated` | 3.9 | Dev: editable PyTorch from this repo, Triton CPU backend, frequent rebuilds. |
++| `bench_triton_cpu_integrated` | 3.9 | Benchmarks: stable installs (e.g. wheels), separate from dev rebuilds. |
++
++- **Root:** `/home/shavin/miniconda3`
++- **Shell:** `conda` init in `~/.bashrc`; Intel oneAPI `setvars.sh` + `TRITON_CPU_BACKEND=1`; **no** auto-`conda activate` — activate the env you need manually.
++
++## Git worktrees
++
++| Path | Branch | Commit (at add) | Role |
++|------|--------|-------------------|------|
++| `…/llm-cpu-compiler/pytorch` | `feature-branch` | `latest active commit` | Primary clone (this file). |
++| `…/llm-cpu-compiler/pytorch-stable` | `triton_cpu_backend` | `41f9c98caf` | Second worktree; use for stable / pinned work vs main tree. |
++
++### triton-cpu (separate repo)
++
++| Path | Branch | Commit (at add) | Role |
++|------|--------|-------------------|------|
++| `…/llm-cpu-compiler/triton-cpu` | `feature branch` | `last commit` | Primary clone. |
++| `…/llm-cpu-compiler/triton-cpu-stable` | `triton_cpu_backend` | `a274cb00` | Second worktree; stable / pinned Triton vs main tree. |
++
++## Builds per env / tree
++
++_TBD._ Record pinned torch commit or wheel version per bench env; note editable dev path for `triton_cpu_integrated`.
++
++## Automated bench build script (PyTorch + Triton + direct kernel check)
++
++From **`triton-cpu-stable`** repo root, this script activates `bench_triton_cpu_integrated` (via `conda.sh` under `CONDA_BASE`), builds CPU-only PyTorch from the sibling **`pytorch-stable`** tree, installs Triton CPU from this repo, then runs the **direct kernel** test below.
++
++```bash
++cd …/llm-cpu-compiler/triton-cpu-stable
++./scripts/build_bench_triton_cpu_integrated.sh all
++```
++
++Commands: `pytorch`, `triton`, `all` (pytorch → triton → direct test), `direct` (only the direct kernel test), `smoke` (Inductor integration under `pytorch-stable`). Override paths with `PYTORCH_REPO`, `TRITON_REPO`, `LLVM_BUILD`, `CONDA_BASE`, `CONDA_ENV` if needed (`--help` in the script lists them).
++
++## Direct Triton CPU kernel test (manual launch + `tl.constexpr`)
++
++**File:** `scripts/test_direct_triton_cpu_kernel.py`
++
++Small vector-add kernel launched like a hand-written example (`BLOCK_SIZE` as `tl.constexpr` and passed at launch). Use this to confirm the CPU launcher accepts **manual** constexpr launches after a Triton install (and to catch `PyArg_ParseTuple` arity bugs vs Inductor-style calls that omit constexpr slots).
++
++```bash
++conda activate bench_triton_cpu_integrated
++cd …/llm-cpu-compiler/triton-cpu-stable
++python scripts/test_direct_triton_cpu_kernel.py
++```
++
++Requires **PyTorch** (CPU tensors) and Triton with **`cpu` in `triton.backends.backends`**. It is also run automatically at the end of `./scripts/build_bench_triton_cpu_integrated.sh all`.
++
++## Stable benchmark build command (PyTorch)
++
++Run from `…/llm-cpu-compiler/pytorch-stable` with `bench_triton_cpu_integrated`:
++
++```bash
++conda activate bench_triton_cpu_integrated
++conda install -y -c conda-forge "cmake>=3.18,<4" ninja
++python -m pip uninstall -y torch || true
++rm -rf build
++export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname "$(which conda)")/../"}
++export USE_CUDA=0
++export USE_ROCM=0
++export USE_XPU=0
++export MAX_JOBS=16
++python -m pip install -r requirements.txt
++python -m pip install -v --no-build-isolation .
++```
++
++## Stable benchmark build command (Triton CPU)
++
++Run from `…/llm-cpu-compiler/triton-cpu-stable` with `bench_triton_cpu_integrated`:
++
++```bash
++conda activate bench_triton_cpu_integrated
++python -m pip uninstall -y triton
++rm -rf python/build python/__pycache__
++export TRITON_CODEGEN_BACKENDS=cpu
++export LLVM_SYSPATH=/home/shavin/llm-cpu-compiler/llvm-project/build
++export LLVM_INCLUDE_DIRS=/home/shavin/llm-cpu-compiler/llvm-project/build/include
++export LLVM_LIBRARY_DIR=/home/shavin/llm-cpu-compiler/llvm-project/build/lib
++export MAX_JOBS=16
++python -m pip install -v --no-build-isolation ./python
++```
++
++## Post-build: Triton CPU + Inductor smoke (LLM-style `torch.compile`)
++
++After PyTorch and Triton (CPU backend) are installed in this stable tree (see above), run from **`pytorch-stable` repo root**:
++
++**Manual:**
++
++```bash
++conda activate bench_triton_cpu_integrated
++cd …/llm-cpu-compiler/pytorch-stable
++python test/inductor/triton_cpu_compile_integration.py --fast --fresh --allow-extern-gemm
++```
++
++Strict check (no `extern_kernels.*` in generated `output_code.py`) only passes if Inductor routes GEMMs to Triton on CPU; omit `--allow-extern-gemm` when validating that path.
++
++**As a test:**
++
++```bash
++cd …/llm-cpu-compiler/pytorch-stable
++python test/inductor/test_triton_cpu_compile_integration.py
++```
++
++Requires Triton with the **CPU** backend (`"cpu" in triton.backends.backends`). Skipped otherwise.
+diff --git a/python/triton/runtime/build.py b/python/triton/runtime/build.py
+index 7f0846ec5..5a984cf40 100644
+--- a/python/triton/runtime/build.py
++++ b/python/triton/runtime/build.py
+@@ -54,7 +54,8 @@ def _build(name, src, srcdir, library_dirs, include_dirs, libraries):
+     custom_backend_dirs = set(os.getenv(var) for var in ('TRITON_CUDACRT_PATH', 'TRITON_CUDART_PATH'))
+     include_dirs = include_dirs + [srcdir, py_include_dir, *custom_backend_dirs]
+     # for -Wno-psabi, see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111047
+-    cc_cmd = [cc, src, "-O3", "-shared", "-fPIC", "-Wno-psabi", "-o", so]
++    #cc_cmd = [cc, src, "-O3", "-shared", "-fPIC", "-Wno-psabi", "-g", "-fno-omit-frame-pointer", "-o", so]
++    cc_cmd = [cc, src, "-O3", "-shared", "-fPIC", "-Wno-psabi", "-g", "-o", so]
+ 
+     libraries += ["gcc"]
+     # Use dynamic lookup to load Python library on Mac
+@@ -88,7 +89,9 @@ def _build(name, src, srcdir, library_dirs, include_dirs, libraries):
+                     print("Info: Ignoring TRITON_LOCAL_LIBOMP_PATH for non-Apple clang compiler")
+     if src.endswith(".s"):
+         # This is required to properly parse .file directives
+-        cc_cmd += ["-g"]
++        # Note: -g disabled due to issues with debug info from dynamic code
++        # cc_cmd += ["-g"]
++        pass
+         if system == "Linux" and machine in ("aarch64", "arm64"):
+             # On Arm backend, some CPU (neoverse-v2) needs to be specified through -mcpu
+             cc_cmd += ["-mcpu=native"]
+diff --git a/scripts/build_bench_triton_cpu_integrated.sh b/scripts/build_bench_triton_cpu_integrated.sh
+new file mode 100755
+index 000000000..82842db59
+--- /dev/null
++++ b/scripts/build_bench_triton_cpu_integrated.sh
+@@ -0,0 +1,132 @@
++#!/usr/bin/env bash
++# Stable benchmark build for bench_triton_cpu_integrated (see LOCAL_SETUP.md).
++# Builds CPU-only PyTorch from pytorch-stable and Triton CPU from this repo.
++
++set -euo pipefail
++
++usage() {
++  cat <<'EOF'
++Usage: build_bench_triton_cpu_integrated.sh <command>
++
++Commands:
++  pytorch   Build and install PyTorch (pytorch-stable), CPU-only.
++  triton    Build and install Triton CPU (triton-cpu-stable).
++  all       Run pytorch, triton, then the direct-kernel test (below).
++  direct    Run scripts/test_direct_triton_cpu_kernel.py (needs torch + triton in env).
++  smoke     Optional Inductor + Triton CPU checks (pytorch-stable).
++
++Environment (optional overrides):
++  CONDA_BASE       Miniconda root (default: $HOME/miniconda3)
++  CONDA_ENV        Env name (default: bench_triton_cpu_integrated)
++  PYTORCH_REPO     PyTorch stable tree (default: sibling ../pytorch-stable next to this repo)
++  TRITON_REPO      This Triton tree (default: parent of scripts/)
++  LLVM_BUILD       LLVM build prefix (default: $LLM_CPU_COMPILER_ROOT/llvm-project/build)
++  LLM_CPU_COMPILER_ROOT  Parent of llvm-project, pytorch-stable, triton-cpu-stable
++                         (default: parent directory of TRITON_REPO, e.g. .../llm-cpu-compiler)
++  DIRECT_TRITON_TEST     Path to direct kernel smoke script
++                         (default: $TRITON_REPO/scripts/test_direct_triton_cpu_kernel.py)
++
++Example:
++  ./scripts/build_bench_triton_cpu_integrated.sh all
++EOF
++  exit "${1:-0}"
++}
++
++SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
++TRITON_REPO="${TRITON_REPO:-$(cd "$SCRIPT_DIR/.." && pwd)}"
++LLM_CPU_COMPILER_ROOT="${LLM_CPU_COMPILER_ROOT:-$(cd "$TRITON_REPO/.." && pwd)}"
++PYTORCH_REPO="${PYTORCH_REPO:-$(cd "$TRITON_REPO/../pytorch-stable" && pwd)}"
++LLVM_BUILD="${LLVM_BUILD:-$LLM_CPU_COMPILER_ROOT/llvm-project/build}"
++CONDA_BASE="${CONDA_BASE:-$HOME/miniconda3}"
++CONDA_ENV="${CONDA_ENV:-bench_triton_cpu_integrated}"
++DIRECT_TRITON_TEST="${DIRECT_TRITON_TEST:-$TRITON_REPO/scripts/test_direct_triton_cpu_kernel.py}"
++
++activate_conda() {
++  if [[ "${CONDA_DEFAULT_ENV:-}" == "$CONDA_ENV" ]]; then
++    return 0
++  fi
++  if [[ ! -f "$CONDA_BASE/etc/profile.d/conda.sh" ]]; then
++    echo "error: conda.sh not found at $CONDA_BASE/etc/profile.d/conda.sh" >&2
++    echo "Set CONDA_BASE or run: conda activate $CONDA_ENV" >&2
++    exit 1
++  fi
++  # shellcheck source=/dev/null
++  source "$CONDA_BASE/etc/profile.d/conda.sh"
++  conda activate "$CONDA_ENV"
++}
++
++build_pytorch() {
++  echo "==> PyTorch (CPU) from $PYTORCH_REPO"
++  [[ -d "$PYTORCH_REPO" ]] || { echo "error: PYTORCH_REPO missing: $PYTORCH_REPO" >&2; exit 1; }
++  cd "$PYTORCH_REPO"
++
++  conda install -y -c conda-forge "cmake>=3.18,<4" ninja
++  python -m pip uninstall -y torch || true
++  rm -rf build
++
++  export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-}"
++  export USE_CUDA=0
++  export USE_ROCM=0
++  export USE_XPU=0
++  export MAX_JOBS="${MAX_JOBS:-16}"
++
++  python -m pip install -r requirements.txt
++  python -m pip install -v --no-build-isolation .
++}
++
++build_triton() {
++  echo "==> Triton CPU from $TRITON_REPO"
++  [[ -d "$TRITON_REPO/python" ]] || { echo "error: TRITON_REPO/python missing: $TRITON_REPO" >&2; exit 1; }
++  cd "$TRITON_REPO"
++
++  python -m pip uninstall -y triton || true
++  rm -rf python/build python/__pycache__
++
++  export TRITON_CODEGEN_BACKENDS=cpu
++  export LLVM_SYSPATH="$LLVM_BUILD"
++  export LLVM_INCLUDE_DIRS="$LLVM_BUILD/include"
++  export LLVM_LIBRARY_DIR="$LLVM_BUILD/lib"
++  export MAX_JOBS="${MAX_JOBS:-16}"
++
++  [[ -d "$LLVM_BUILD" ]] || echo "warning: LLVM_BUILD not a directory: $LLVM_BUILD (build may fail)" >&2
++
++  python -m pip install -v --no-build-isolation ./python
++}
++
++run_direct_triton_kernel_test() {
++  echo "==> Direct Triton CPU kernel test: $DIRECT_TRITON_TEST"
++  [[ -f "$DIRECT_TRITON_TEST" ]] || { echo "error: missing $DIRECT_TRITON_TEST" >&2; exit 1; }
++  python "$DIRECT_TRITON_TEST"
++}
++
++run_smoke() {
++  echo "==> Smoke: Triton CPU + Inductor (pytorch-stable)"
++  cd "$PYTORCH_REPO"
++  python test/inductor/triton_cpu_compile_integration.py --fast --fresh --allow-extern-gemm
++  python test/inductor/test_triton_cpu_compile_integration.py
++}
++
++main() {
++  local cmd="${1:-}"
++  [[ "$cmd" == "-h" || "$cmd" == "--help" ]] && usage 0
++  [[ -z "$cmd" ]] && usage 1
++
++  activate_conda
++
++  case "$cmd" in
++    pytorch) build_pytorch ;;
++    triton) build_triton ;;
++    all)
++      build_pytorch
++      build_triton
++      run_direct_triton_kernel_test
++      ;;
++    direct) run_direct_triton_kernel_test ;;
++    smoke) run_smoke ;;
++    *) usage 1 ;;
++  esac
++
++  echo "==> Done: $cmd"
++}
++
++main "$@"
+diff --git a/scripts/test_direct_triton_cpu_kernel.py b/scripts/test_direct_triton_cpu_kernel.py
+new file mode 100755
+index 000000000..0faa183b9
+--- /dev/null
++++ b/scripts/test_direct_triton_cpu_kernel.py
+@@ -0,0 +1,73 @@
++#!/usr/bin/env python3
++"""
++Direct Triton CPU kernel smoke test (manual launch with tl.constexpr).
++
++Launches a small vector-add kernel with BLOCK_SIZE passed as a keyword (same
++pattern as hand-written kernels). This exercises the CPU backend launcher with
++constexpr in the launch tuple and catches arity / PyArg_ParseTuple mismatches
++between that path and Inductor-style launches that omit constexpr arguments.
++
++Requires: torch (CPU), triton built with CPU backend.
++"""
++from __future__ import annotations
++
++import sys
++
++import torch
++import triton
++import triton.language as tl
++from triton.backends import backends
++
++
++@triton.jit
++def add_kernel(
++    a_ptr,
++    b_ptr,
++    out_ptr,
++    n_elements,
++    BLOCK_SIZE: tl.constexpr,
++):
++    pid = tl.program_id(axis=0)
++    block_start = pid * BLOCK_SIZE
++    offsets = block_start + tl.arange(0, BLOCK_SIZE)
++    mask = offsets < n_elements
++    a = tl.load(a_ptr + offsets, mask=mask)
++    b = tl.load(b_ptr + offsets, mask=mask)
++    tl.store(out_ptr + offsets, a + b, mask=mask)
++
++
++def triton_add(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
++    assert a.shape == b.shape
++    a = a.contiguous()
++    b = b.contiguous()
++    out = torch.empty_like(a)
++    n = out.numel()
++    block = 1024
++    grid = lambda meta: (triton.cdiv(n, meta["BLOCK_SIZE"]),)
++    add_kernel[grid](a, b, out, n, BLOCK_SIZE=block)
++    return out
++
++
++def main() -> int:
++    if "cpu" not in backends:
++        print("error: Triton CPU backend not available (expected 'cpu' in triton.backends.backends)", file=sys.stderr)
++        return 2
++
++    device = torch.device("cpu")
++    size = 100_000
++    torch.manual_seed(0)
++    a = torch.rand(size, device=device, dtype=torch.float32)
++    b = torch.rand(size, device=device, dtype=torch.float32)
++    triton_out = triton_add(a, b)
++    ref = a + b
++    max_diff = torch.max(torch.abs(triton_out - ref)).item()
++    print(f"Maximum difference between Triton and PyTorch: {max_diff}")
++    if max_diff >= 1e-5:
++        print("error: results do not match", file=sys.stderr)
++        return 1
++    print("ok: direct Triton CPU kernel (constexpr launch) passed")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/third_party/cpu/backend/compiler.py b/third_party/cpu/backend/compiler.py
+index 82267f2f1..3d87870cb 100644
+--- a/third_party/cpu/backend/compiler.py
++++ b/third_party/cpu/backend/compiler.py
+@@ -278,6 +278,8 @@ class CPUBackend(BaseBackend):
+         passes.common.add_canonicalizer(pm)
+         passes.common.add_cse(pm)
+         passes.common.add_symbol_dce(pm)
++        # Disable debug info for dynamically generated code from PyTorch
++        # The debug info can cause assembly errors with special characters in file paths
+         if os.environ.get("TRITON_DISABLE_LINE_INFO", "0") == "0":
+             passes.llvmir.add_di_scope(pm)
+         pm.run(mod)
+diff --git a/third_party/cpu/backend/driver.py b/third_party/cpu/backend/driver.py
+index e2d82531a..7631cb46e 100644
+--- a/third_party/cpu/backend/driver.py
++++ b/third_party/cpu/backend/driver.py
+@@ -72,14 +72,29 @@ class CPUUtils(object):
+         pass
+ 
+     def load_binary(self, name, kernel, shared_mem, device):
+-        with tempfile.NamedTemporaryFile(mode="wb", suffix=".so") as f:
+-            f.write(kernel)
+-            f.flush()
+-            import ctypes
+-            lib = ctypes.cdll.LoadLibrary(f.name)
+-            fn_ptr = getattr(lib, name)
+-            fn_ptr_as_void_p = ctypes.cast(fn_ptr, ctypes.c_void_p).value
+-            return (lib, fn_ptr_as_void_p, 0, 0)
++        # Persist kernel .so files at deterministic, hash-named paths so external
++        # profilers (Intel Advisor, VTune, perf) can resolve symbols and source
++        # locations after the Python process exits.  NamedTemporaryFile's default
++        # delete=True unlinks the file the moment this method returns, leaving
++        # Pin / Advisor with "Cannot locate file" errors and zero FLOP
++        # attribution → empty roofline.
++        dump_dir = os.environ.get(
++            "TRITON_KERNEL_DUMP_DIR",
++            os.path.join(tempfile.gettempdir(), "triton_cpu_kernels"),
++        )
++        os.makedirs(dump_dir, exist_ok=True)
++        kernel_hash = hashlib.md5(kernel).hexdigest()
++        so_path = os.path.join(dump_dir, f"{name}_{kernel_hash}.so")
++        if not os.path.exists(so_path):
++            tmp_path = so_path + ".tmp"
++            with open(tmp_path, "wb") as f:
++                f.write(kernel)
++            os.replace(tmp_path, so_path)
++        import ctypes
++        lib = ctypes.cdll.LoadLibrary(so_path)
++        fn_ptr = getattr(lib, name)
++        fn_ptr_as_void_p = ctypes.cast(fn_ptr, ctypes.c_void_p).value
++        return (lib, fn_ptr_as_void_p, 0, 0)
+ 
+     def get_device_properties(self, *args):
+         return {"max_shared_mem": 0}
+@@ -152,8 +167,10 @@ def make_launcher(constants, signature, ids):
+             "uint64_t": "K",
+         }[ty_to_cpp(ty)]
+ 
+-    args_format = ''.join([format_of(ty) for ty in signature.values()])
+-    format = "iiiOKOOOO" + args_format
++    args_format_full = ''.join([format_of(ty) for ty in signature.values()])
++    args_format_without_constexpr = ''.join([format_of(ty) for ty in signature.values() if ty != "constexpr"])
++    format_full = "iiiOKOOOO" + args_format_full
++    format_without_constexpr = "iiiOKOOOO" + args_format_without_constexpr
+ 
+     signature = ','.join(map(_serialize_signature, signature.values()))
+     signature = list(filter(bool, signature.split(',')))
+@@ -161,27 +178,58 @@ def make_launcher(constants, signature, ids):
+ 
+     arg_decls = ', '.join(f"{ty_to_cpp(ty)} arg{i}" for i, ty in signature.items() if ty != "constexpr")
+ 
+-    arg_ptrs_list = ', '.join(f"&arg{i}" for i in signature.keys())
++    arg_ptrs_list_full = ', '.join(f"&arg{i}" for i in signature.keys())
++    arg_ptrs_list_without_constexpr = ', '.join(f"&arg{i}" for i, ty in signature.items() if ty != "constexpr")
+     kernel_fn_args = [i for i, ty in signature.items() if i not in constants and ty != "constexpr"]
+     signature_without_constexprs = {i: ty for i, ty in signature.items() if ty != "constexpr"}
++    ptr_arg_indices = [i for i, ty in signature_without_constexprs.items() if ty[0] == "*"]
++    ptr_arg_pos = {idx: pos for pos, idx in enumerate(ptr_arg_indices)}
++    ptr_arg_count = len(ptr_arg_indices)
++    num_signature_full = len(signature)
++    num_signature_without_constexpr = len(signature_without_constexprs)
+     kernel_fn_args_list = ', '.join(f"arg{i}" for i in kernel_fn_args)
+     kernel_fn_arg_types = ', '.join([f"{ty_to_cpp(signature[i])}" for i in kernel_fn_args] + ["uint32_t"] * 6)
++    kernel_launch_args_default = ', '.join(
++        f"ptr_info{i}.dev_ptr" if ty[0] == "*" else f"arg{i}"
++        for i, ty in signature_without_constexprs.items()
++    )
++    kernel_launch_args_numa = ', '.join(
++        f"numa_ptrs[{ptr_arg_pos[i]}]" if ty[0] == "*" else f"arg{i}"
++        for i, ty in signature_without_constexprs.items()
++    )
+ 
+     # generate glue code
+     src = f"""
+ #include <algorithm>
++#include <atomic>
++#include <cctype>
+ #include <cmath>
++#include <condition_variable>
+ #include <cstddef>
+ #include <cstdlib>
++#include <fstream>
++#include <functional>
+ #include <iomanip>
+ #include <iostream>
+ #ifdef _OPENMP
+ #include <omp.h>
+ #endif // _OPENMP
++#include <memory>
++#include <mutex>
+ #include <optional>
++#include <sstream>
+ #include <stdio.h>
+ #include <string>
+-#include <memory>
++#include <thread>
++#include <vector>
++#ifdef __linux__
++// #include <cerrno>
++// #include <sys/syscall.h>
++// #include <unistd.h>
++// #include <linux/mempolicy.h>
++#include <pthread.h>
++#include <sched.h>
++#endif // __linux__
+ 
+ #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+ #include <Python.h>
+@@ -263,6 +311,267 @@ static std::unique_ptr<uint32_t[][3]> get_all_grids(uint32_t gridX, uint32_t gri
+   return grids;
+ }}
+ 
++static std::vector<int> parse_cpu_list(const std::string& cpu_list) {{
++  std::vector<int> cpus;
++  std::stringstream ss(cpu_list);
++  std::string token;
++  while (std::getline(ss, token, ',')) {{
++    token.erase(std::remove_if(token.begin(), token.end(), [](unsigned char c) {{
++      return std::isspace(c);
++    }}), token.end());
++    if (token.empty()) {{
++      continue;
++    }}
++    size_t dash = token.find('-');
++    if (dash == std::string::npos) {{
++      cpus.push_back(std::stoi(token));
++      continue;
++    }}
++    int start = std::stoi(token.substr(0, dash));
++    int end = std::stoi(token.substr(dash + 1));
++    if (end < start) {{
++      std::swap(start, end);
++    }}
++    for (int cpu = start; cpu <= end; ++cpu) {{
++      cpus.push_back(cpu);
++    }}
++  }}
++  return cpus;
++}}
++
++static std::vector<int> get_numa_node_cpus(int node_id) {{
++  std::vector<int> cpus;
++  std::ifstream file("/sys/devices/system/node/node" + std::to_string(node_id) + "/cpulist");
++  if (!file.is_open()) {{
++    return cpus;
++  }}
++  std::string cpu_list;
++  std::getline(file, cpu_list);
++  if (cpu_list.empty()) {{
++    return cpus;
++  }}
++  try {{
++    cpus = parse_cpu_list(cpu_list);
++  }} catch (...) {{
++    cpus.clear();
++  }}
++  return cpus;
++}}
++
++static void bind_current_thread_to_cpu(int cpu_id) {{
++#ifdef __linux__
++  if (cpu_id < 0) {{
++    return;
++  }}
++  cpu_set_t cpuset;
++  CPU_ZERO(&cpuset);
++  CPU_SET(cpu_id, &cpuset);
++  pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
++#else
++  (void)cpu_id;
++#endif // __linux__
++}}
++
++// static int query_numa_node_for_ptr(void* addr) {{
++// #ifdef __linux__
++//   if (addr == nullptr) {{
++//     return -1;
++//   }}
++//   int node = -1;
++//   long rc = syscall(
++//       SYS_get_mempolicy,
++//       &node,
++//       nullptr,
++//       0,
++//       addr,
++//       MPOL_F_NODE | MPOL_F_ADDR);
++//   if (rc != 0) {{
++//     return -2;
++//   }}
++//   return node;
++// #else
++//   (void)addr;
++//   return -3;
++// #endif // __linux__
++// }}
++
++// -------------------------------------------------------------------------
++// Persistent NUMA-pinned thread pool.
++//
++// Replaces the fresh-std::thread-per-kernel-launch path (which calls
++// pthread_setaffinity_np on every launch) with a pool that is created once,
++// pins each worker to a specific CPU at construction, and parks workers on
++// a per-node condvar between launches. Each Triton-CPU launcher module owns
++// its own pool (process-scoped singleton here), initialized lazily from the
++// first launch's ``numa_nodes`` list.
++//
++// Dispatch model: caller provides a callable invoked on each worker with
++// ``(node_i, local_tid, node_threads)``. The callable is responsible for
++// computing its grid slice and invoking the kernel. ``dispatch_and_wait``
++// blocks until all workers of all nodes have finished, matching the
++// prior join-on-every-launch semantics so locals captured by reference on
++// the caller's stack remain valid.
++//
++// The pool ignores the per-launch ``num_threads`` argument: it always uses
++// all CPUs listed in each socket's cpulist. For the NUMA path this matches
++// intent (the whole point of pinning is to use all cores of each socket).
++// If the pool fails to init (empty cpulist / exception), the caller falls
++// back to ``run_omp_kernels`` for this launch.
++// -------------------------------------------------------------------------
++namespace {{
++
++struct NumaPoolNode {{
++  std::mutex mu;
++  std::condition_variable cv;
++  uint64_t epoch{{0}};
++  bool shutdown{{false}};
++  int node_threads{{0}};
++  std::function<void(int /*local_tid*/, int /*node_threads*/)> task;
++}};
++
++class NumaThreadPool {{
++ public:
++  // ``numa_nodes`` lists the NUMA node ids in shard order (index 0 = shard 0,
++  // etc.). For each node we read its cpulist and spawn one pinned worker per
++  // CPU. Returns false on init failure.
++  bool init(const std::vector<int>& numa_nodes) {{
++    nodes_.reserve(numa_nodes.size());
++    for (size_t ni = 0; ni < numa_nodes.size(); ++ni) {{
++      nodes_.emplace_back(std::unique_ptr<NumaPoolNode>(new NumaPoolNode()));
++    }}
++    int total = 0;
++    for (size_t ni = 0; ni < numa_nodes.size(); ++ni) {{
++      std::vector<int> cpus = get_numa_node_cpus(numa_nodes[(size_t)ni]);
++      int nt = (int)cpus.size();
++      if (nt <= 0) {{
++        // No cpulist available: park one unpinned worker for this node so
++        // subsequent dispatches still make progress on this shard.
++        nt = 1;
++        cpus.assign(1, -1);
++      }}
++      nodes_[ni]->node_threads = nt;
++      for (int tid = 0; tid < nt; ++tid) {{
++        int cpu = cpus[(size_t)tid];
++        NumaPoolNode* np = nodes_[ni].get();
++        workers_.emplace_back(std::thread([this, np, tid, nt, cpu]() {{
++          bind_current_thread_to_cpu(cpu);
++          uint64_t seen = 0;
++          while (true) {{
++            std::function<void(int, int)> fn;
++            {{
++              std::unique_lock<std::mutex> lk(np->mu);
++              np->cv.wait(lk, [&]{{ return np->shutdown || np->epoch > seen; }});
++              if (np->shutdown) {{
++                return;
++              }}
++              seen = np->epoch;
++              fn = np->task;
++            }}
++            if (fn) {{
++              try {{
++                fn(tid, nt);
++              }} catch (...) {{
++                // Swallow exceptions from the kernel callable so a single
++                // errant task cannot take down the pool.
++              }}
++            }}
++            int before = remaining_.fetch_sub(1, std::memory_order_acq_rel);
++            if (before == 1) {{
++              std::lock_guard<std::mutex> dlk(done_mu_);
++              done_cv_.notify_one();
++            }}
++          }}
++        }}));
++        ++total;
++      }}
++    }}
++    return total > 0;
++  }}
++
++  size_t num_nodes() const {{ return nodes_.size(); }}
++
++  int node_threads(size_t ni) const {{
++    return (ni < nodes_.size()) ? nodes_[ni]->node_threads : 0;
++  }}
++
++  // Dispatch ``per_worker_fn(node_i, local_tid, node_threads)`` to every
++  // worker of every node and block until all have finished.
++  void dispatch_and_wait(
++      const std::function<void(int, int, int)>& per_worker_fn) {{
++    int total = 0;
++    for (auto& n : nodes_) total += n->node_threads;
++    if (total <= 0) return;
++    remaining_.store(total, std::memory_order_release);
++    for (size_t ni = 0; ni < nodes_.size(); ++ni) {{
++      NumaPoolNode* np = nodes_[ni].get();
++      int node_i = (int)ni;
++      {{
++        std::lock_guard<std::mutex> lk(np->mu);
++        np->task = [per_worker_fn, node_i](int tid, int nt) {{
++          per_worker_fn(node_i, tid, nt);
++        }};
++        np->epoch += 1;
++      }}
++      np->cv.notify_all();
++    }}
++    std::unique_lock<std::mutex> dlk(done_mu_);
++    done_cv_.wait(dlk, [&]{{ return remaining_.load(std::memory_order_acquire) == 0; }});
++  }}
++
++  ~NumaThreadPool() {{
++    for (auto& np : nodes_) {{
++      {{
++        std::lock_guard<std::mutex> lk(np->mu);
++        np->shutdown = true;
++      }}
++      np->cv.notify_all();
++    }}
++    for (auto& w : workers_) {{
++      if (w.joinable()) w.join();
++    }}
++  }}
++
++ private:
++  std::vector<std::unique_ptr<NumaPoolNode>> nodes_;
++  std::vector<std::thread> workers_;
++  std::atomic<int> remaining_{{0}};
++  std::mutex done_mu_;
++  std::condition_variable done_cv_;
++}};
++
++static std::unique_ptr<NumaThreadPool> g_numa_pool;
++static std::mutex g_numa_pool_mu;
++static std::vector<int> g_numa_pool_nodes;
++
++// Returns a process-lifetime NumaThreadPool initialized on first call.
++// On subsequent calls the pool is reused only if ``numa_nodes`` matches the
++// one it was initialized with (same topology). On any mismatch or init
++// failure, returns nullptr and the caller falls back to the spawn path.
++static NumaThreadPool* get_or_init_numa_pool(const std::vector<int>& numa_nodes) {{
++  std::lock_guard<std::mutex> lk(g_numa_pool_mu);
++  if (g_numa_pool) {{
++    if (g_numa_pool_nodes == numa_nodes) {{
++      return g_numa_pool.get();
++    }}
++    return nullptr;
++  }}
++  std::unique_ptr<NumaThreadPool> pool(new NumaThreadPool());
++  bool ok = false;
++  try {{
++    ok = pool->init(numa_nodes);
++  }} catch (...) {{
++    ok = false;
++  }}
++  if (!ok) {{
++    return nullptr;
++  }}
++  g_numa_pool = std::move(pool);
++  g_numa_pool_nodes = numa_nodes;
++  return g_numa_pool.get();
++}}
++
++}}  // namespace
++
+ static void run_omp_kernels(uint32_t gridX, uint32_t gridY, uint32_t gridZ, int num_threads, kernel_ptr_t kernel_ptr {(', ' + arg_decls) if len(arg_decls) > 0 else ''}) {{
+   // TODO: Consider using omp collapse(3) clause for simplicity?
+   size_t N = gridX * gridY * gridZ;
+@@ -307,9 +616,34 @@ static PyObject* launch(PyObject* self, PyObject* args) {{
+   void* pKrnl;
+ 
+   {' '.join([f"{_extracted_type(ty)} arg{i}; " for i, ty in signature.items()])}
+-  if(!PyArg_ParseTuple(args, \"{format}\", &gridX, &gridY, &gridZ, &py_obj_stream, &pKrnl,
+-                                       &kernel_metadata, &launch_metadata,
+-                                       &launch_enter_hook, &launch_exit_hook {', ' + arg_ptrs_list if len(signature) > 0 else ''})) {{
++  const Py_ssize_t nargs = PyTuple_GET_SIZE(args);
++  const Py_ssize_t expected_with_constexpr = 9 + {num_signature_full};
++  const Py_ssize_t expected_without_constexpr = 9 + {num_signature_without_constexpr};
++  if (expected_with_constexpr == expected_without_constexpr) {{
++    if(!PyArg_ParseTuple(args, \"{format_full}\", &gridX, &gridY, &gridZ, &py_obj_stream, &pKrnl,
++                                         &kernel_metadata, &launch_metadata,
++                                         &launch_enter_hook, &launch_exit_hook {', ' + arg_ptrs_list_full if len(signature) > 0 else ''})) {{
++      return NULL;
++    }}
++  }} else if (nargs == expected_without_constexpr) {{
++    if(!PyArg_ParseTuple(args, \"{format_without_constexpr}\", &gridX, &gridY, &gridZ, &py_obj_stream, &pKrnl,
++                                         &kernel_metadata, &launch_metadata,
++                                         &launch_enter_hook, &launch_exit_hook {', ' + arg_ptrs_list_without_constexpr if len(signature_without_constexprs) > 0 else ''})) {{
++      return NULL;
++    }}
++  }} else if (nargs == expected_with_constexpr) {{
++    if(!PyArg_ParseTuple(args, \"{format_full}\", &gridX, &gridY, &gridZ, &py_obj_stream, &pKrnl,
++                                         &kernel_metadata, &launch_metadata,
++                                         &launch_enter_hook, &launch_exit_hook {', ' + arg_ptrs_list_full if len(signature) > 0 else ''})) {{
++      return NULL;
++    }}
++  }} else {{
++    PyErr_Format(
++        PyExc_TypeError,
++        "launch: expected %zd (without constexpr) or %zd (with constexpr) arguments, got %zd",
++        expected_without_constexpr,
++        expected_with_constexpr,
++        nargs);
+     return NULL;
+   }}
+ 
+@@ -321,6 +655,7 @@ static PyObject* launch(PyObject* self, PyObject* args) {{
+   PyObject *num_threads_attr = PyObject_GetAttrString(kernel_metadata, "num_threads");
+   if (num_threads_attr && PyLong_Check(num_threads_attr))
+     num_threads = PyLong_AsLong(num_threads_attr);
++  Py_XDECREF(num_threads_attr);
+ 
+   // extract launch metadata
+   if (launch_enter_hook != Py_None){{
+@@ -332,7 +667,152 @@ static PyObject* launch(PyObject* self, PyObject* args) {{
+   }}
+ 
+   {"; ".join([f"DevicePtrInfo ptr_info{i} = getPointer(arg{i}, {i}); if (!ptr_info{i}.valid) return NULL;" if ty[0] == "*" else "" for i, ty in signature_without_constexprs.items()])};
+-  run_omp_kernels(gridX, gridY, gridZ, num_threads, kernel_ptr {(', ' + ', '.join(f"ptr_info{i}.dev_ptr" if ty[0]=="*" else f"arg{i}" for i, ty in signature_without_constexprs.items())) if len(signature_without_constexprs) > 0 else ''});
++  bool launched_numa = false;
++  if ({ptr_arg_count} > 0 && PyObject_HasAttrString(kernel_metadata, "numa_args")) {{
++    PyObject* numa_args_attr = PyObject_GetAttrString(kernel_metadata, "numa_args");
++    if (numa_args_attr != NULL && numa_args_attr != Py_None && PySequence_Check(numa_args_attr)) {{
++      Py_ssize_t numa_count = PySequence_Size(numa_args_attr);
++      if (numa_count > 0) {{
++        std::vector<int> numa_nodes((size_t)numa_count);
++        for (Py_ssize_t i = 0; i < numa_count; ++i) {{
++          numa_nodes[(size_t)i] = static_cast<int>(i);
++        }}
++        for (const char* node_attr_name : {{"numa_list", "numa_nodes", "numa_node_list"}}) {{
++          if (!PyObject_HasAttrString(kernel_metadata, node_attr_name)) {{
++            continue;
++          }}
++          PyObject* numa_nodes_attr = PyObject_GetAttrString(kernel_metadata, node_attr_name);
++          if (numa_nodes_attr != NULL && PySequence_Check(numa_nodes_attr) &&
++              PySequence_Size(numa_nodes_attr) == numa_count) {{
++            bool valid_nodes = true;
++            for (Py_ssize_t i = 0; i < numa_count; ++i) {{
++              PyObject* node = PySequence_GetItem(numa_nodes_attr, i);
++              if (node == NULL || !PyLong_Check(node)) {{
++                valid_nodes = false;
++                Py_XDECREF(node);
++                break;
++              }}
++              numa_nodes[(size_t)i] = (int)PyLong_AsLong(node);
++              Py_DECREF(node);
++            }}
++            Py_DECREF(numa_nodes_attr);
++            if (valid_nodes) {{
++              break;
++            }}
++          }} else {{
++            Py_XDECREF(numa_nodes_attr);
++          }}
++        }}
++
++        std::vector<std::vector<void*>> per_node_ptrs(
++            (size_t)numa_count, std::vector<void*>((size_t){ptr_arg_count}, nullptr));
++        bool valid_numa_args = true;
++        for (Py_ssize_t node_i = 0; node_i < numa_count && valid_numa_args; ++node_i) {{
++          PyObject* node_args = PySequence_GetItem(numa_args_attr, node_i);
++          if (node_args == NULL || !PySequence_Check(node_args) ||
++              PySequence_Size(node_args) != {ptr_arg_count}) {{
++            PyErr_Format(
++                PyExc_TypeError,
++                "kernel_metadata.numa_args[%zd] must be a sequence of length {ptr_arg_count}",
++                node_i);
++            Py_XDECREF(node_args);
++            valid_numa_args = false;
++            break;
++          }}
++          for (Py_ssize_t ptr_i = 0; ptr_i < {ptr_arg_count}; ++ptr_i) {{
++            PyObject* ptr_obj = PySequence_GetItem(node_args, ptr_i);
++            if (ptr_obj == NULL) {{
++              valid_numa_args = false;
++              break;
++            }}
++            DevicePtrInfo ptr_info = getPointer(ptr_obj, (int)ptr_i);
++            Py_DECREF(ptr_obj);
++            if (!ptr_info.valid) {{
++              valid_numa_args = false;
++              break;
++            }}
++            per_node_ptrs[(size_t)node_i][(size_t)ptr_i] = ptr_info.dev_ptr;
++          }}
++          Py_DECREF(node_args);
++        }}
++
++        if (valid_numa_args) {{
++          const size_t N = (size_t)gridX * (size_t)gridY * (size_t)gridZ;
++          auto all_grids = get_all_grids(gridX, gridY, gridZ);
++
++          // Try the persistent pinned pool first. On first call, the pool
++          // spawns one worker per CPU per NUMA node (pinned once) and keeps
++          // them parked on a condvar between launches. On subsequent calls
++          // this saves (std::thread construction + pthread_setaffinity_np +
++          // join) × total_threads on every kernel launch.
++          NumaThreadPool* pool = get_or_init_numa_pool(numa_nodes);
++          if (pool != nullptr) {{
++            pool->dispatch_and_wait(
++                [&](int node_i, int local_tid, int node_threads) {{
++                  size_t start = (N * (size_t)local_tid) / (size_t)node_threads;
++                  size_t end = (N * (size_t)(local_tid + 1)) / (size_t)node_threads;
++                  const std::vector<void*>& numa_ptrs = per_node_ptrs[(size_t)node_i];
++                  for (size_t i = start; i < end; ++i) {{
++                    const auto [x, y, z] = all_grids[i];
++                    (*kernel_ptr)({kernel_launch_args_numa + ', ' if len(signature_without_constexprs) > 0 else ''}x, y, z, gridX, gridY, gridZ);
++                  }}
++                }});
++            launched_numa = true;
++          }} else {{
++            // Pool init failed (e.g. empty cpulists, topology mismatch).
++            // Fall back to the spawn-per-launch path so NUMA work still gets
++            // dispatched — just without the pooling speedup.
++            int hw_threads = (int)std::thread::hardware_concurrency();
++            if (hw_threads <= 0) {{
++              hw_threads = 1;
++            }}
++            int total_threads = (num_threads > 0) ? num_threads : hw_threads;
++            if (total_threads < (int)numa_count) {{
++              total_threads = (int)numa_count;
++            }}
++
++            std::vector<std::thread> workers;
++            workers.reserve((size_t)total_threads);
++            int base_threads = total_threads / (int)numa_count;
++            int rem_threads = total_threads % (int)numa_count;
++            for (Py_ssize_t node_i = 0; node_i < numa_count; ++node_i) {{
++              int node_threads = base_threads + ((node_i < rem_threads) ? 1 : 0);
++              if (node_threads <= 0) {{
++                continue;
++              }}
++              std::vector<int> node_cpus = get_numa_node_cpus(numa_nodes[(size_t)node_i]);
++              for (int local_tid = 0; local_tid < node_threads; ++local_tid) {{
++                workers.emplace_back([&, node_i, local_tid, node_threads, node_cpus]() {{
++                  if (!node_cpus.empty()) {{
++                    bind_current_thread_to_cpu(node_cpus[(size_t)local_tid % node_cpus.size()]);
++                  }}
++                  size_t start = (N * (size_t)local_tid) / (size_t)node_threads;
++                  size_t end = (N * (size_t)(local_tid + 1)) / (size_t)node_threads;
++                  const std::vector<void*>& numa_ptrs = per_node_ptrs[(size_t)node_i];
++                  for (size_t i = start; i < end; ++i) {{
++                    const auto [x, y, z] = all_grids[i];
++                    (*kernel_ptr)({kernel_launch_args_numa + ', ' if len(signature_without_constexprs) > 0 else ''}x, y, z, gridX, gridY, gridZ);
++                  }}
++                }});
++              }}
++            }}
++            for (auto& worker : workers) {{
++              worker.join();
++            }}
++            launched_numa = true;
++          }}
++        }}
++      }}
++    }}
++    Py_XDECREF(numa_args_attr);
++  }}
++  if (PyErr_Occurred()) {{
++    return NULL;
++  }}
++
++  if (!launched_numa) {{
++    run_omp_kernels(gridX, gridY, gridZ, num_threads, kernel_ptr {(', ' + kernel_launch_args_default) if len(signature_without_constexprs) > 0 else ''});
++  }}
+ 
+   if(launch_exit_hook != Py_None){{
+     PyObject* args = Py_BuildValue("(O)", launch_metadata);
