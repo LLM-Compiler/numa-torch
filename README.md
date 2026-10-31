@@ -10,35 +10,17 @@ Haswell, 1.87x on dual-socket Cascade Lake, and 2.27x on four-socket Haswell-EX.
 
 ---
 
-## Which revision produced which result
-
-**The paper's results come from two different branches, and this matters.**
-The four-socket study required a correctness fix to the row-parallel all-reduce
-that changes numerical output. Rather than overwrite the branch the published
-dual-socket figures were produced from, the fix lives on a descendant branch.
-`fix/numa-tp-row-parallel-allreduce` is a strict superset of
-`feature/niman_gemma_prefil_pass` (257 commits ahead, 0 behind).
-
-| Paper item | Platform | Repository | Tag / commit |
-|---|---|---|---|
-| Fig. 2 (roofline) | Dual-socket Haswell | pytorch + triton-cpu | `v1.0-paper-dual-socket` / `advisor-fix` |
-| Fig. 7 (time heatmaps) | Dual-socket | pytorch | `v1.0-paper-dual-socket` = `54581fbd` |
-| Fig. 8 (speedup bars) | Dual-socket | pytorch | `v1.0-paper-dual-socket` = `54581fbd` |
-| Fig. 9 (four-socket geomean) | Four-socket Haswell-EX | pytorch | `v1.0-paper-four-socket` = `84cb280a` |
-| Fig. 10 (four-socket grid) | Four-socket Haswell-EX | pytorch | `v1.0-paper-four-socket` = `84cb280a` |
-| `numactl` policy comparison | Dual-socket | this repo, `results/numactl/` | - |
-
-If you check out the dual-socket tag and run a four-socket sweep, you will not
-reproduce Figs. 9-10: that configuration needs the all-reduce fix.
-
----
-
 ## Components
+
+One revision per component. The PyTorch side is `v1.0-paper-four-socket`
+(`84cb280a`), which supersedes the earlier `v1.0-paper-dual-socket` (`54581fbd`):
+it is a strict superset, 0 commits behind, and adds the row-parallel all-reduce
+correctness fix. Build this revision for every platform.
 
 | Component | Repository | Ref | Modified? |
 |---|---|---|---|
-| PyTorch (Inductor NUMA-TP passes) | `LLM-Compiler/pytorch` | `v1.0-paper-dual-socket`, `v1.0-paper-four-socket` | yes |
-| Triton-CPU (NUMA launcher) | `LLM-Compiler/triton-cpu` | `v1.0-paper` | yes |
+| PyTorch (Inductor NUMA-TP passes) | `LLM-Compiler/pytorch` | `v1.0-paper-four-socket` = `84cb280a` | yes |
+| Triton-CPU (NUMA launcher) | `LLM-Compiler/triton-cpu` | `v1.0-paper` = `7e394470` | yes |
 | LLVM 19 | `llvm/llvm-project` | `adba14acea99cc6a17d837763a3248c9d4a2fadf` | **no** - stock upstream |
 
 LLVM is unmodified. We verified that the commit used for all reported builds is
@@ -46,29 +28,53 @@ byte-identical to upstream `adba14a`; it is pinned, not forked.
 
 ---
 
+## Measurement provenance
+
+The artifact ships one PyTorch revision, but the published figures were not all
+measured on it. This table records what produced each number, so the data can be
+audited:
+
+| Paper item | Platform | Measured on | Supported build |
+|---|---|---|---|
+| Fig. 2 (roofline) | Dual-socket Haswell | `54581fbd` | `v1.0-paper-four-socket` |
+| Fig. 7 (time heatmaps) | Dual-socket | `54581fbd` | `v1.0-paper-four-socket` |
+| Fig. 8 (speedup bars) | Dual-socket | `54581fbd` | `v1.0-paper-four-socket` |
+| Fig. 9 (four-socket geomean) | Four-socket Haswell-EX | `84cb280a` | `v1.0-paper-four-socket` |
+| Fig. 10 (four-socket grid) | Four-socket Haswell-EX | `84cb280a` | `v1.0-paper-four-socket` |
+| `numactl` policy comparison | Dual-socket | n/a | this repo, `results/numactl/` |
+
+`54581fbd` predates the row-parallel all-reduce fix, which changes numerical
+output. It stays reachable in the fork history as the `v1.0-paper-dual-socket`
+tag for anyone reproducing the published dual-socket figures exactly as
+measured. New runs on any socket count should use `v1.0-paper-four-socket`.
+
+---
+
 ## What we actually changed
 
 Readers who only want to see the contribution should read the patches rather than
-clone the forks.
+clone the forks. Each patch is a single diff against its upstream base, and
+applies with `git apply` or `patch -p1`.
 
 | Patch | Scope |
 |---|---|
-| `patches/pytorch-numa-tp.patch` | 35 source files, +5460/-46 under `torch/` |
-| `patches/pytorch-allreduce-fix.patch` | row-parallel all-reduce correctness fix |
+| `patches/pytorch-numa-tp.patch` | 36 source files, +5996/-49 under `torch/`, `aten/` |
 | `patches/triton-cpu-numa.patch` | 6 files, +822/-18 (`driver.py` +512) |
 
 PyTorch side, all under `torch/_inductor/`:
 
-    fx_passes/numa_mlp_tp.py              1228    column/row-parallel MLP
-    fx_passes/numa_attention_tp.py        1227    multi-head attention
-    fx_passes/numa_gemma_attention_tp.py   905    MQA + GeGLU (Gemma 3)
-    fx_passes/numa_tp_common.py            305    shared partition machinery
+    fx_passes/numa_mlp_tp.py              1229    column/row-parallel MLP
+    fx_passes/numa_attention_tp.py        1228    multi-head attention
+    fx_passes/numa_gemma_attention_tp.py   932    MQA + GeGLU (Gemma 3)
+    fx_passes/numa_tp_common.py            449    shared partition machinery
     fx_passes/numa_residual_tp.py          198
     fx_passes/numa_lm_head_tp.py           173
     fx_passes/numa_layer_norm_tp.py        158
-    post_grad.py                           +45    pass registration
-    runtime/triton_heuristics.py           +54    numa_args -> kernel metadata
-    codegen/wrapper.py                            per-socket buffer codegen
+    post_grad.py                           +43    pass registration
+    runtime/triton_heuristics.py           +50    numa_args -> kernel metadata
+    codegen/wrapper.py                    +1054   per-socket buffer codegen,
+                                                  cross-socket all-reduce
+    kernel/mm_common.py, kernel/bmm.py            NUMA-aware output allocation
 
 Triton-CPU side, `third_party/cpu/backend/driver.py` (+512):
 
@@ -96,7 +102,12 @@ The PyTorch fork is based on an upstream pull-request branch that was never merg
 into `pytorch/pytorch` main, so that base commit is not reachable from upstream.
 It is carried in this fork. Diff with:
 
-    git diff 2c1a9b7143..v1.0-paper-dual-socket -- torch aten c10
+    git diff 2c1a9b7143..v1.0-paper-four-socket -- torch aten c10
+
+The pathspec matters: the branch also carries development notes and a
+`bench_2026-09-25/` scratch directory that are not part of the contribution.
+`patches/pytorch-numa-tp.patch` is that same diff, restricted to the 36 source
+files, and has been verified byte-identical to the tagged tree.
 
 ---
 
@@ -122,7 +133,6 @@ See `BUILD.md`.
 
     patches/      contribution diffs against the upstream bases
     results/      raw per-configuration CSVs behind every figure
-    scripts/      sweep drivers
     BUILD.md      build instructions for the three-component stack
     third_party/  submodules pinned to the exact paper revisions
 

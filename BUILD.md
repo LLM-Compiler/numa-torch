@@ -56,16 +56,14 @@ The NUMA work is confined to `third_party/cpu/backend/driver.py`
 
 ## 3. PyTorch with the Inductor NUMA-TP passes
 
-Pick the tag matching the results you want:
-
-| Tag | Reproduces |
-|---|---|
-| `v1.0-paper-dual-socket` | Fig. 2, Fig. 7, Fig. 8 (dual-socket Haswell, Cascade Lake) |
-| `v1.0-paper-four-socket` | Fig. 9, Fig. 10 (four-socket Haswell-EX) |
+One revision covers every platform: `v1.0-paper-four-socket`. It is a strict
+superset of the earlier `v1.0-paper-dual-socket` (0 commits behind) and adds the
+row-parallel all-reduce correctness fix, so build it for 2-socket and 4-socket
+hosts alike.
 
     git clone https://github.com/LLM-Compiler/pytorch "$NUMA_ROOT/pytorch"
     cd "$NUMA_ROOT/pytorch"
-    git checkout v1.0-paper-dual-socket      # or v1.0-paper-four-socket
+    git checkout v1.0-paper-four-socket
     pip install -r requirements.txt
 
     export USE_NUMA=1

@@ -1,5 +1,5 @@
 diff --git a/aten/src/ATen/LegacyBatchingRegistrations.cpp b/aten/src/ATen/LegacyBatchingRegistrations.cpp
-index a51c25663d..ebfab70eb7 100644
+index a51c256..ebfab70 100644
 --- a/aten/src/ATen/LegacyBatchingRegistrations.cpp
 +++ b/aten/src/ATen/LegacyBatchingRegistrations.cpp
 @@ -763,7 +763,10 @@ Tensor pow_scalar_Tensor_batching_rule(const Scalar& other, const Tensor& self)
@@ -32,7 +32,7 @@ index a51c25663d..ebfab70eb7 100644
    return makeBatched(output_physical, BatchDims(old_bdims.begin(), old_bdims.end()));
  }
 diff --git a/aten/src/ATen/functorch/BatchRulesUnaryOps.cpp b/aten/src/ATen/functorch/BatchRulesUnaryOps.cpp
-index b26d2c4a41..e7effd95db 100644
+index b26d2c4..e7effd9 100644
 --- a/aten/src/ATen/functorch/BatchRulesUnaryOps.cpp
 +++ b/aten/src/ATen/functorch/BatchRulesUnaryOps.cpp
 @@ -14,7 +14,8 @@ std::tuple<Tensor, std::optional<int64_t>>
@@ -61,7 +61,7 @@ index b26d2c4a41..e7effd95db 100644
  }
  
 diff --git a/aten/src/ATen/native/TensorFactories.cpp b/aten/src/ATen/native/TensorFactories.cpp
-index 653293609a..e57ce31c6d 100644
+index 6532936..e57ce31 100644
 --- a/aten/src/ATen/native/TensorFactories.cpp
 +++ b/aten/src/ATen/native/TensorFactories.cpp
 @@ -18,6 +18,7 @@
@@ -122,7 +122,7 @@ index 653293609a..e57ce31c6d 100644
      self.zero_();
    } else {
 diff --git a/aten/src/ATen/native/mkldnn/TensorShape.cpp b/aten/src/ATen/native/mkldnn/TensorShape.cpp
-index fc8ce9fd3b..1f7bedd35a 100644
+index fc8ce9f..1f7bedd 100644
 --- a/aten/src/ATen/native/mkldnn/TensorShape.cpp
 +++ b/aten/src/ATen/native/mkldnn/TensorShape.cpp
 @@ -26,7 +26,10 @@ Tensor mkldnn_reshape(const Tensor& self, IntArrayRef size) {
@@ -157,7 +157,7 @@ index fc8ce9fd3b..1f7bedd35a 100644
    ideep::tensor dst;
    ideep::direct_copy::compute(src, dst);
 diff --git a/aten/src/ATen/native/mkldnn/TensorShape.h b/aten/src/ATen/native/mkldnn/TensorShape.h
-index 92af7e2759..4f7c61861c 100644
+index 92af7e2..4f7c618 100644
 --- a/aten/src/ATen/native/mkldnn/TensorShape.h
 +++ b/aten/src/ATen/native/mkldnn/TensorShape.h
 @@ -10,7 +10,10 @@ Tensor mkldnn_view(const Tensor& self, IntArrayRef size);
@@ -173,7 +173,7 @@ index 92af7e2759..4f7c61861c 100644
  } // namespace native
  } // namespace at
 diff --git a/aten/src/ATen/native/native_functions.yaml b/aten/src/ATen/native/native_functions.yaml
-index b28d10b084..51f6dd25da 100644
+index b28d10b..51f6dd2 100644
 --- a/aten/src/ATen/native/native_functions.yaml
 +++ b/aten/src/ATen/native/native_functions.yaml
 @@ -6814,7 +6814,7 @@
@@ -186,7 +186,7 @@ index b28d10b084..51f6dd25da 100644
    dispatch:
      CompositeExplicitAutograd: clone
 diff --git a/aten/src/ATen/native/nested/NestedTensorFactories.cpp b/aten/src/ATen/native/nested/NestedTensorFactories.cpp
-index e9ceb91d77..6e47509aae 100644
+index e9ceb91..6e47509 100644
 --- a/aten/src/ATen/native/nested/NestedTensorFactories.cpp
 +++ b/aten/src/ATen/native/nested/NestedTensorFactories.cpp
 @@ -131,7 +131,11 @@ Tensor& copy_nested_(Tensor& self, const Tensor& src, bool non_blocking) {
@@ -203,7 +203,7 @@ index e9ceb91d77..6e47509aae 100644
    auto self_ptr = get_nested_tensor_impl(self);
    if (memory_format == c10::MemoryFormat::Preserve ||
 diff --git a/aten/src/ATen/native/quantized/QTensor.cpp b/aten/src/ATen/native/quantized/QTensor.cpp
-index ab9f3f4633..c0c3caaefc 100644
+index ab9f3f4..c0c3caa 100644
 --- a/aten/src/ATen/native/quantized/QTensor.cpp
 +++ b/aten/src/ATen/native/quantized/QTensor.cpp
 @@ -188,7 +188,11 @@ QScheme qscheme_quant(const Tensor& self) {
@@ -220,7 +220,7 @@ index ab9f3f4633..c0c3caaefc 100644
        optional_memory_format.value_or(MemoryFormat::Contiguous);
  
 diff --git a/aten/src/ATen/native/sparse/SparseCsrTensor.cpp b/aten/src/ATen/native/sparse/SparseCsrTensor.cpp
-index 121307c9bb..340d370ef3 100644
+index 121307c..340d370 100644
 --- a/aten/src/ATen/native/sparse/SparseCsrTensor.cpp
 +++ b/aten/src/ATen/native/sparse/SparseCsrTensor.cpp
 @@ -874,11 +874,15 @@ const SparseCsrTensor& resize_as_sparse_compressed_(
@@ -241,7 +241,7 @@ index 121307c9bb..340d370ef3 100644
    auto compressed_indices = AT_DISPATCH_ROW_SPARSE_COMPRESSED_LAYOUTS(self.layout(),
                                                                        "clone_sparse_compressed",
 diff --git a/aten/src/ATen/native/sparse/SparseTensor.cpp b/aten/src/ATen/native/sparse/SparseTensor.cpp
-index de8ee97a77..1cc1171b4e 100644
+index de8ee97..1cc1171 100644
 --- a/aten/src/ATen/native/sparse/SparseTensor.cpp
 +++ b/aten/src/ATen/native/sparse/SparseTensor.cpp
 @@ -520,11 +520,15 @@ Tensor _sparse_coo_tensor_unsafe_symint(const Tensor& indices, const Tensor& val
@@ -262,7 +262,7 @@ index de8ee97a77..1cc1171b4e 100644
        self.sparse_dim(),
        self.dense_dim(),
 diff --git a/torch/_dynamo/_trace_wrapped_higher_order_op.py b/torch/_dynamo/_trace_wrapped_higher_order_op.py
-index c698ded100..b298dc2adc 100644
+index c698ded..b298dc2 100644
 --- a/torch/_dynamo/_trace_wrapped_higher_order_op.py
 +++ b/torch/_dynamo/_trace_wrapped_higher_order_op.py
 @@ -8,9 +8,10 @@ from torch.fx.experimental._backward_state import BackwardState
@@ -278,7 +278,7 @@ index c698ded100..b298dc2adc 100644
  
  # trace_wrapped(*args, fn) is equivalent to fn(*args), but with a twist:
 diff --git a/torch/_inductor/codegen/multi_kernel.py b/torch/_inductor/codegen/multi_kernel.py
-index 6081530fd9..002dd8d3a9 100644
+index 6081530..002dd8d 100644
 --- a/torch/_inductor/codegen/multi_kernel.py
 +++ b/torch/_inductor/codegen/multi_kernel.py
 @@ -155,7 +155,7 @@ class MultiKernel:
@@ -326,7 +326,7 @@ index 6081530fd9..002dd8d3a9 100644
  
      def codegen_nan_check(self):
 diff --git a/torch/_inductor/codegen/simd.py b/torch/_inductor/codegen/simd.py
-index c57f6c6a82..19f3644731 100644
+index c57f6c6..19f3644 100644
 --- a/torch/_inductor/codegen/simd.py
 +++ b/torch/_inductor/codegen/simd.py
 @@ -1415,7 +1415,25 @@ class SIMDScheduling(BaseScheduling):
@@ -357,7 +357,7 @@ index c57f6c6a82..19f3644731 100644
          if config.nan_asserts:
              final_kernel.codegen_nan_check()
 diff --git a/torch/_inductor/codegen/triton.py b/torch/_inductor/codegen/triton.py
-index 5877366147..a4c8066bda 100644
+index 5877366..a4c8066 100644
 --- a/torch/_inductor/codegen/triton.py
 +++ b/torch/_inductor/codegen/triton.py
 @@ -540,6 +540,13 @@ class TritonPrinter(PythonPrinter):
@@ -459,7 +459,7 @@ index 5877366147..a4c8066bda 100644
  
          if self.args.workspace_arg is not None:
 diff --git a/torch/_inductor/codegen/wrapper.py b/torch/_inductor/codegen/wrapper.py
-index db61354294..669b73fbac 100644
+index db61354..d9a3f30 100644
 --- a/torch/_inductor/codegen/wrapper.py
 +++ b/torch/_inductor/codegen/wrapper.py
 @@ -47,6 +47,7 @@ from ..runtime import triton_heuristics
@@ -470,7 +470,7 @@ index db61354294..669b73fbac 100644
      get_benchmark_name,
      LineContext,
      sympy_product,
-@@ -55,6 +56,95 @@ from ..utils import (
+@@ -55,6 +56,181 @@ from ..utils import (
  from ..virtualized import V
  from .aoti_hipify_utils import maybe_hipify_code_wrapper
  from .common import CodeGen, DeferredLine, IndentedBuffer, PythonPrinter
@@ -514,6 +514,92 @@ index db61354294..669b73fbac 100644
 +
 +    def _new_line(self, line: str) -> "_NumaReassembleLine":
 +        return _NumaReassembleLine(line, self.name, self._consumed_set)
++
++
++class _NumaAllReduceLine(DeferredLineBase):
++    """Emit one line of a cross-socket all-reduce only if the reduced tensor
++    is actually read afterwards -- either by a non-NUMA consumer of ``name``
++    (tracked in ``_numa_reassemble_consumed``) or by a downstream NUMA kernel
++    that reads one of the post-reduce per-socket re-clones in
++    ``reclone_names`` (tracked in ``_numa_reclone_consumed``). If neither
++    holds, the whole reduction is dead and is elided at flush time.
++    """
++
++    def __init__(
++        self,
++        line: str,
++        name: str,
++        consumed_set: "Set[str]",
++        reclone_names: "List[str]",
++        reclone_consumed: "Set[str]",
++    ) -> None:
++        super().__init__(line)
++        self.name = name
++        self._consumed_set = consumed_set
++        self._reclone_names = reclone_names
++        self._reclone_consumed = reclone_consumed
++
++    def _is_live(self) -> bool:
++        if self.name in self._consumed_set:
++            return True
++        return any(n in self._reclone_consumed for n in self._reclone_names)
++
++    def __call__(self) -> Optional[str]:
++        return self.line if self._is_live() else None
++
++    def _new_line(self, line: str) -> "_NumaAllReduceLine":
++        return _NumaAllReduceLine(
++            line,
++            self.name,
++            self._consumed_set,
++            self._reclone_names,
++            self._reclone_consumed,
++        )
++
++
++class _NumaGraphOutputCopyLine(DeferredLineBase):
++    """Reconcile a replicated per-socket result that is also a graph output.
++
++    The two reconciliation paths cover terminal partial sums (all-reduce) and
++    intermediate activations (stay socket-local, forwarded to the next local
++    kernel). A replicated result that is returned from the graph fits neither:
++    it has no downstream local kernel, so nothing would ever write the buffer
++    the caller receives, and the model returns unwritten memory.
++
++    Every socket holds a COMPLETE copy of a replicated result (Algorithm 3), so
++    a single copy from node 0 reconciles it. Summing would scale the value by
++    the socket count. Emitted only if ``name`` really is a graph output at
++    flush time, when ``V.graph.graph_outputs`` is final.
++    """
++
++    def __init__(self, line: str, name: str) -> None:
++        super().__init__(line)
++        self.name = name
++
++    def __call__(self) -> Optional[str]:
++        return self.line if self.name in V.graph.get_output_names() else None
++
++    def _new_line(self, line: str) -> "_NumaGraphOutputCopyLine":
++        return _NumaGraphOutputCopyLine(line, self.name)
++
++
++# Measurement gate: emit column-parallel per-node operands as views of the
++# original weight instead of full per-node clones. Trades locality for
++# memory; default OFF so committed behaviour is unchanged.
++_NUMA_COLPAR_VIEW = bool(__import__('os').environ.get('NUMA_COLPAR_VIEW'))
++
++
++# Replicate the ALIAS/EXTERN/PASS-THROUGH chain across sockets. Required for
++# rotary embedding, whose buffers otherwise never get socket-local copies.
++#
++# All four paths must stay on together: replicating only some leaves sockets
++# reading a mix of master and socket-local data, which is strictly worse than
++# none (measured: Gemma attention corr 0.844 -> NaN with two of four enabled).
++#
++# Validated on 19 configurations -- 7 Gemma (MLP/attention/both x 1-2 layers x
++# W=2,4), all corr 1.000000, and 12 GPT-2 regression cells unchanged from
++# baseline. Set NUMA_ALIAS_CHAIN=0 to disable if it ever needs bisecting.
++_NUMA_ALIAS_CHAIN = __import__('os').environ.get('NUMA_ALIAS_CHAIN', '1') != '0'
 +
 +
 +class _NUMAFreshAllocLine(DeferredLineBase):
@@ -566,7 +652,7 @@ index db61354294..669b73fbac 100644
  from .triton_utils import config_of, should_unwrap_unspec_arg, signature_to_meta
  
  
-@@ -436,7 +526,9 @@ class ReuseLine(MemoryPlanningLine):
+@@ -436,7 +612,9 @@ class ReuseLine(MemoryPlanningLine):
          assert self.node.get_name() not in V.graph.removed_buffers
          assert self.reused_as.get_name() not in V.graph.removed_buffers
          code.writeline(
@@ -577,19 +663,29 @@ index db61354294..669b73fbac 100644
          )
  
  
-@@ -484,6 +576,33 @@ class PythonWrapperCodegen(CodeGen):
+@@ -484,6 +662,43 @@ class PythonWrapperCodegen(CodeGen):
          self.user_defined_kernel_cache: Dict[Tuple[Any, ...], Tuple[str, Any]] = {}
          self.unbacked_symbol_decls: Set[str] = set()  # str of sympy.Symbol
          self.computed_sizes: Set[sympy.Symbol] = set()
 +        # Maps a tensor variable name in wrapper code (e.g. "buf1") to a list of
 +        # per-NUMA-node tensor variables produced for that logical tensor.
 +        self._numa_tensor_cache: Dict[str, List[str]] = {}
++        # name -> (parent, size, stride, offset) for buffers that are VIEWS
++        # into a larger parent. ``stack`` builds interleaved real/imag pairs
++        # this way; allocating the views independently per socket destroys the
++        # interleaving and leaves the parent with no socket-local copy.
++        self._numa_alias_parents: Dict[str, Tuple[str, str, str, str]] = {}
 +        # Per-NUMA-node tensor variables whose post-all-reduce re-clone is
 +        # actually consumed by a downstream kernel. Names added here cause
 +        # the corresponding deferred re-clone line to be emitted at flush
 +        # time; names absent at flush time stay "unwritten". This elides
 +        # dead re-clone copies when the row-parallel output is terminal.
 +        self._numa_reclone_consumed: Set[str] = set()
++        # Post-all-reduce per-socket names, keyed by the reduced buffer.
++        # Kept separate from ``_numa_tensor_cache`` because buffer-reuse
++        # aliasing overwrites that cache entry, which would otherwise point
++        # downstream consumers back at the pre-reduction partials.
++        self._numa_reduction_reclones: Dict[str, List[str]] = {}
 +        # Per-NUMA-node allocation variable names that have been superseded by
 +        # a reinterpret alias from a buffer-reuse chain. When a name appears
 +        # here, the corresponding _NUMAFreshAllocLine is suppressed at flush
@@ -611,7 +707,7 @@ index db61354294..669b73fbac 100644
  
          # this is used for tracking which GraphLowering instance---parent graph
          # or (nested) subgraph---is currently codegened; the primary use case is
-@@ -538,6 +657,35 @@ class PythonWrapperCodegen(CodeGen):
+@@ -538,6 +753,35 @@ class PythonWrapperCodegen(CodeGen):
          aot_inductor_debug_utils = ""
          if int(config.aot_inductor.debug_intermediate_value_printer) > 0:
              aot_inductor_debug_utils = "from torch._inductor.codegen.debug_utils import _print_debugging_tensor_value_info"
@@ -647,7 +743,7 @@ index db61354294..669b73fbac 100644
          self.imports.splice(
              f"""
                  {aot_config_comment}
-@@ -550,10 +698,11 @@ class PythonWrapperCodegen(CodeGen):
+@@ -550,10 +794,11 @@ class PythonWrapperCodegen(CodeGen):
                  from math import inf, nan
                  from torch._inductor.hooks import run_intermediate_hooks
                  from torch._inductor.utils import maybe_profile
@@ -660,7 +756,93 @@ index db61354294..669b73fbac 100644
                  from torch._inductor.codegen.multi_kernel import MultiKernelCall
                  {aot_inductor_debug_utils}
              """,
-@@ -1638,6 +1787,14 @@ class PythonWrapperCodegen(CodeGen):
+@@ -769,6 +1014,7 @@ class PythonWrapperCodegen(CodeGen):
+             self.writeline(
+                 f"{self.declare}{output_name} = {kernel_name}({', '.join(args)}){ending}"
+             )
++            self._numa_extern_per_socket(output_name, kernel_name, args, ending)
+             if (
+                 self.supports_intermediate_hooks
+                 and config.generate_intermediate_hooks
+@@ -779,6 +1025,62 @@ class PythonWrapperCodegen(CodeGen):
+                     f"run_intermediate_hooks({origin_node.name!r}, {output_name})"
+                 )
+ 
++
++    def _numa_extern_per_socket(
++        self, output_name: str, kernel_name: str, args: List[str], ending: str
++    ) -> None:
++        """Replicate an extern/fallback aten call across NUMA sockets.
++
++        ``numa_args`` only rides along with Triton kernel launches. An op that
++        Inductor cannot codegen -- notably the complex ops behind rotary
++        embedding, ``view_as_complex`` / complex ``mul`` / ``view_as_real``,
++        which log "does not support code generation for complex operators" --
++        is emitted here instead, as a bare ``torch.ops.aten.*`` call. Without
++        this, that call runs ONCE against the master buffers and the per-socket
++        buffers keep their pre-op values, so every socket but the compute shard
++        silently diverges.
++
++        That was the whole of the Gemma defect: with rotary disabled both the
++        GeGLU MLP and attention paths go from corr 0.770 / 0.844 to 1.000000.
++        A broadcast from the master would NOT be correct here, because under
++        attention TP the master holds only the compute shard's heads.
++
++        Emits one call per socket, substituting each argument's socket-local
++        buffer where one exists, and registers the outputs so downstream
++        kernels resolve them through ``_numa_tensor_cache``.
++        """
++        if not _NUMA_ALIAS_CHAIN:
++            return
++        cache = getattr(self, "_numa_tensor_cache", None)
++        if not cache:
++            return
++        if not (
++            getattr(config, "_numa_mlp_tp", False)
++            or getattr(config, "_numa_attention_tp", False)
++        ):
++            return
++        # Only meaningful if at least one operand is actually sharded/replicated
++        # per socket; otherwise the master result is already correct for all.
++        shared = [a for a in args if isinstance(a, str) and a in cache]
++        if not shared:
++            return
++        ws = len(cache[shared[0]])
++        if ws < 2:
++            return
++
++        per_node: List[str] = []
++        for sid in range(ws):
++            sargs = [
++                cache[a][sid] if isinstance(a, str) and a in cache else a
++                for a in args
++            ]
++            name = f"_numa_ext_{output_name}_n{sid}"
++            self.writeline(f"{name} = {kernel_name}({', '.join(sargs)}){ending}")
++            # Mark live so the deferred-line elision does not drop it.
++            getattr(self, "_numa_reclone_consumed", set()).add(name)
++            per_node.append(name)
++        cache[output_name] = per_node
++
+     def generate_extern_kernel_out(
+         self, kernel: str, out: str, out_view: Optional[str], args: List[str]
+     ):
+@@ -1122,6 +1424,14 @@ class PythonWrapperCodegen(CodeGen):
+ 
+     def codegen_multi_output(self, name, value):
+         self.writeline(f"{self.declare}{name} = {value}{self.ending}")
++        # A bare ``bufN = bufM`` rename. Without carrying the per-socket entry
++        # across it the replication chain BREAKS here, which is what turned
++        # rotary into NaN when only the alias and extern hooks were present.
++        if _NUMA_ALIAS_CHAIN:
++            src = str(value).strip()
++            cache = getattr(self, "_numa_tensor_cache", None)
++            if cache is not None and src in cache:
++                cache[name] = list(cache[src])
+ 
+     def codegen_dynamic_scalar(self, node):
+         (data,) = (t.codegen_reference() for t in node.inputs)
+@@ -1638,6 +1948,14 @@ class PythonWrapperCodegen(CodeGen):
          else:
              return pexpr(grid_per_dim)
  
@@ -675,7 +857,7 @@ index db61354294..669b73fbac 100644
      def generate_kernel_call(
          self,
          kernel_name,
-@@ -1652,6 +1809,8 @@ class PythonWrapperCodegen(CodeGen):
+@@ -1652,6 +1970,8 @@ class PythonWrapperCodegen(CodeGen):
          triton_meta=None,
          autotune_configs=None,
          grid_extra_kwargs="",
@@ -684,7 +866,7 @@ index db61354294..669b73fbac 100644
      ):
          """
          Generates kernel call code.
-@@ -1686,13 +1845,140 @@ class PythonWrapperCodegen(CodeGen):
+@@ -1686,13 +2006,171 @@ class PythonWrapperCodegen(CodeGen):
              if grid_extra_kwargs:
                  grid_str = f"{grid_str}, {grid_extra_kwargs}"
              grid_str = f"{grid_fn}({grid_str})"
@@ -700,9 +882,15 @@ index db61354294..669b73fbac 100644
 +            getattr(config, "_numa_mlp_tp", False)
 +            or getattr(config, "_numa_attention_tp", False)
 +        ):
-+            full_plan = getattr(config, "_numa_attention_tp_shard_plan", None)
-+            if not (isinstance(full_plan, dict) and full_plan.get("world_size", 0) >= 2):
-+                full_plan = getattr(config, "_numa_mlp_tp_shard_plan", None)
++            # Union of every pass's plan. Preferring one slot over the other
++            # described the MLP's template kernels with the attention plan
++            # whenever both passes were on, dropping the MLP's sharding and
++            # its all-reduce. See ``merged_global_shard_plan``.
++            from torch._inductor.fx_passes.numa_tp_common import (
++                merged_global_shard_plan,
++            )
++
++            full_plan = merged_global_shard_plan()
 +            if isinstance(full_plan, dict) and full_plan.get("world_size", 0) >= 2:
 +                numa_shard_plan = full_plan
 +            else:
@@ -773,54 +961,79 @@ index db61354294..669b73fbac 100644
 +                        if len(per_node_outs) < 2:
 +                            continue
 +                        ws = len(per_node_outs)
-+                        # M-split reassembly: the Triton-CPU launcher splits the
-+                        # kernel grid linearly across sockets in row-major
-+                        # (M-major) tile order.  Socket ``i`` therefore owns the
-+                        # contiguous row shard [i * M//W : (i+1) * M//W] of every
-+                        # output buffer.  Rather than summing per-socket outputs
-+                        # (which would double-count rows), we concatenate the
-+                        # valid shard from each socket along dim-0 to reconstruct
-+                        # the full output tensor.
++                        # Cross-socket all-reduce: Z = sum_i Z^i.
 +                        #
-+                        # The per-socket kernel outputs stay in _numa_tensor_cache
-+                        # so downstream NUMA kernels still access their own
-+                        # M-shard directly — no broadcast clone needed.
-+                        split_var = f"_numa_msplit_{out_arg}"
-+                        first_out = per_node_outs[0]
-+                        # In-place reassembly into the already-allocated
-+                        # out_arg buffer: each socket copies its M-shard
-+                        # into the corresponding slice. Avoids the per-
-+                        # forward allocation that ``torch.cat`` would do.
-+                        # Wrapped in ``_NumaReassembleLine`` so the whole
-+                        # reassembly is elided when ``out_arg`` has no
-+                        # non-NUMA consumer (downstream NUMA kernels read
-+                        # per-socket M-shards from ``_numa_tensor_cache``
-+                        # directly and never reference ``out_arg`` as a
-+                        # plain Python var).
++                        # The Triton-CPU launcher uses ``node_i`` only to pick
++                        # the socket-local operand set -- it never narrows the
++                        # grid range -- so every socket sweeps the *full*
++                        # kernel grid. A row-parallel kernel therefore leaves
++                        # each socket holding a complete-shape PARTIAL product
++                        # built from that socket's K-shard alone.
++                        #
++                        # These partials must be summed. Slicing a disjoint
++                        # row block out of each socket (the previous "M-split"
++                        # reassembly) silently dropped the other ws-1 shards'
++                        # contribution to those rows, and threw away the rest
++                        # of the work each socket had already done.
++                        reclone_names = [
++                            f"_numa_ar_{out_arg}_n{sid}" for sid in range(ws)
++                        ]
 +                        self._numa_reassemble_candidates.add(out_arg)
 +                        consumed_set = self._numa_reassemble_consumed
-+                        self.writeline(
-+                            _NumaReassembleLine(
-+                                f"{split_var} = {first_out}.shape[0] // {ws}",
-+                                out_arg,
-+                                consumed_set,
-+                            )
-+                        )
-+                        for sid in range(ws):
-+                            start_s = f"{split_var}*{sid}" if sid > 0 else ""
-+                            end_s = f"{split_var}*{sid + 1}" if sid < ws - 1 else ""
++                        reclone_consumed = self._numa_reclone_consumed
++
++                        # In-place into the already-allocated ``out_arg``, so
++                        # the reduction adds no per-forward allocation.
++                        reduce_lines = [f"{out_arg}.copy_({per_node_outs[0]})"]
++                        reduce_lines += [
++                            f"{out_arg}.add_({per_node_outs[sid]})"
++                            for sid in range(1, ws)
++                        ]
++                        for reduce_line in reduce_lines:
 +                            self.writeline(
-+                                _NumaReassembleLine(
-+                                    f"{out_arg}[{start_s}:{end_s}].copy_("
-+                                    f"{per_node_outs[sid]}[{start_s}:{end_s}])",
++                                _NumaAllReduceLine(
++                                    reduce_line,
 +                                    out_arg,
 +                                    consumed_set,
++                                    reclone_names,
++                                    reclone_consumed,
 +                                )
 +                            )
-+                        # Keep per-socket kernel outputs in cache so downstream
-+                        # NUMA kernels receive their correct M-shard without
-+                        # an extra clone or re-broadcast.
-+                        self._numa_tensor_cache[out_arg] = per_node_outs
++
++                        # Hand every socket its own copy of the reduced tensor
++                        # so a downstream NUMA kernel still reads socket-local
++                        # memory. Each re-clone is deferred and survives only
++                        # if that socket's copy is actually consumed.
++                        for sid in range(ws):
++                            self.writeline(
++                                _NumaReCloneLine(
++                                    f"{reclone_names[sid]} = "
++                                    f"torch.ops.aten.clone.default("
++                                    f"{out_arg}, numa_node={sid})",
++                                    reclone_names[sid],
++                                    reclone_consumed,
++                                )
++                            )
++                        # Downstream NUMA kernels must read the reduced value,
++                        # never the pre-reduction partials.
++                        self._numa_tensor_cache[out_arg] = reclone_names
++                        self._numa_reduction_reclones[out_arg] = reclone_names
++                else:
++                    # Not a row-parallel kernel, so there is no partial sum to
++                    # reduce. But if one of these per-socket results is the
++                    # graph's own output (e.g. the final replicated LayerNorm
++                    # of a Pre-LN stack) there is no downstream local kernel to
++                    # forward it to either, and the returned buffer would never
++                    # be written. Reconcile it with a single copy from node 0.
++                    for out_arg, per_node_outs in numa_output_clones.items():
++                        if not per_node_outs:
++                            continue
++                        self.writeline(
++                            _NumaGraphOutputCopyLine(
++                                f"{out_arg}.copy_({per_node_outs[0]})",
++                                out_arg,
++                            )
++                        )
 +            else:
 +                self.writeline(
 +                    f"{kernel_name}.run({call_args_str}, grid={grid_str}, stream={stream_name})"
@@ -828,7 +1041,7 @@ index db61354294..669b73fbac 100644
          if (
              config.triton.autotune_at_compile_time
              and kernel_name not in self.kernel_autotune_names
-@@ -1756,6 +2042,20 @@ class PythonWrapperCodegen(CodeGen):
+@@ -1756,6 +2234,20 @@ class PythonWrapperCodegen(CodeGen):
              self.kernel_autotune_names.add(kernel_name)
  
      def writeline(self, line):
@@ -849,7 +1062,7 @@ index db61354294..669b73fbac 100644
          self.lines.append(line)
  
      def writelines(self, lines):
-@@ -1794,6 +2094,358 @@ class PythonWrapperCodegen(CodeGen):
+@@ -1794,6 +2286,426 @@ class PythonWrapperCodegen(CodeGen):
          else:
              return repr(s)
  
@@ -906,7 +1119,12 @@ index db61354294..669b73fbac 100644
 +        )
 +
 +        normalized_plan = ensure_generalized_lists(shard_plan)
-+        x_node = normalized_plan.get("x_node")
++        # Activation inputs: replicated, but re-cloned every forward rather
++        # than hoisted into the persistent weight cache. A merged plan carries
++        # one per contributing block/pass.
++        x_nodes = set(normalized_plan.get("x_nodes") or [])
++        if isinstance(normalized_plan.get("x_node"), str):
++            x_nodes.add(normalized_plan["x_node"])
 +        shard_d = int(normalized_plan.get("shard_d", 0))
 +
 +        # column_parallel_nodes / row_parallel_nodes entries are 2-tuples
@@ -1002,8 +1220,31 @@ index db61354294..669b73fbac 100644
 +                )
 +                return shard_name
 +
-+            full_clone_name = f"{prefix}_{var_name}_full_n{sid}"
 +            slice_name = f"{prefix}_{var_name}_n{sid}"
++
++            # A column slice of a C-contiguous parent keeps the PARENT's
++            # strides, so the only way to give a node a compact copy is to
++            # change the stride -- which the MM template has already baked as a
++            # constant. Hence the clone-full-then-slice below: every node holds
++            # the whole weight and uses 1/W of it. Measured on gpt2-762m W=4:
++            # 144 weights full-cloned, 6.61 GB held where 1.65 GB is needed,
++            # i.e. 4.95 GB wasted (bench_2026-09-25/measure_waste.py).
++            #
++            # Under NUMA_COLPAR_VIEW the per-node operand is instead a plain
++            # VIEW of the original weight: identical data, identical strides
++            # (so the baked constants still match), and no extra memory at all.
++            # What it gives up is locality -- those reads become cross-socket.
++            # That trade is worth measuring directly, since it isolates how
++            # much of NUMA-TP's gain comes from weight locality as opposed to
++            # activation locality.
++            if _NUMA_COLPAR_VIEW:
++                self.writeline(
++                    f"{slice_name} = torch.ops.aten.slice.Tensor("
++                    f"{var_name}, {dim}, {start}, {end}, 1)"
++                )
++                return slice_name
++
++            full_clone_name = f"{prefix}_{var_name}_full_n{sid}"
 +            # Cache the full clone (malloc + memcpy) so it runs only once.
 +            key = full_clone_name
 +            init_expr = f"torch.ops.aten.clone.default({var_name}, numa_node={sid})"
@@ -1049,6 +1290,30 @@ index db61354294..669b73fbac 100644
 +            out_name = f"{prefix}_{var_name}_n{sid}"
 +            self._ensure_numa_weight_cache_header()
 +            key = out_name
++
++            # A view must stay a view of its parent's socket-local copy.
++            alias = self._numa_alias_parents.get(var_name) if _NUMA_ALIAS_CHAIN else None
++            if alias is not None:
++                parent, a_size, a_stride, a_off = alias
++                pcache = self._numa_tensor_cache.get(parent)
++                if not pcache or len(pcache) < world_size:
++                    pcache = []
++                    for psid in range(world_size):
++                        pname = f"{prefix}_{parent}_n{psid}"
++                        _emit_numa_weight_cache(
++                            self, pname,
++                            f"empty_strided_cpu_numa({parent}.size(), "
++                            f"{parent}.stride(), {parent}.dtype, numa_node={psid})",
++                            pname, self._numa_suppressed_allocs,
++                        )
++                        pcache.append(pname)
++                    self._numa_tensor_cache[parent] = pcache
++                self.writeline(
++                    f"{out_name} = reinterpret_tensor("
++                    f"{pcache[sid]}, {a_size}, {a_stride}, {a_off})"
++                )
++                return out_name
++
 +            init_expr = (
 +                f"empty_strided_cpu_numa("
 +                f"{var_name}.size(), {var_name}.stride(), {var_name}.dtype, "
@@ -1093,12 +1358,28 @@ index db61354294..669b73fbac 100644
 +                # tensors directly on the target NUMA node (uninitialized).
 +                # The kernel fully overwrites these, so skip the wasteful
 +                # ``clone + copy`` of undefined bytes that _emit_replicate
-+                # would do. Applied to pure-output args and also to the
-+                # first occurrence of an in_out_ptr arg (no cache hit).
-+                if is_out_only or is_in_out:
++                # would do. Pure outputs only.
++                if is_out_only:
 +                    out_name = _emit_numa_empty_strided(arg_name, sid)
 +                    per_node_arg_names[sid].append(out_name)
 +                    generated_by_arg.setdefault(arg_name, [""] * world_size)[sid] = out_name
++                    continue
++
++                # ``in_out_ptr`` with no cache entry. Unlike ``out_ptr``, the
++                # kernel may READ this buffer before overwriting it, so its
++                # incoming value is live -- Inductor picks ``in_out_ptr`` for
++                # exactly the in-place accumulate case (``buf += ...``).
++                # Allocating uninitialized per-socket storage discards that
++                # value on every socket. That is how an all-reduced row-parallel
++                # result feeding a fused residual add vanished: each socket read
++                # a fresh zero page instead of the reconciled sum, so the whole
++                # sublayer contributed nothing. Replicate the master buffer,
++                # which holds the reconciled data. Not cached across forwards:
++                # an accumulator's contents change every call.
++                if is_in_out:
++                    name = _emit_replicate(arg_name, sid, cache=False)
++                    per_node_arg_names[sid].append(name)
++                    generated_by_arg.setdefault(arg_name, [""] * world_size)[sid] = name
 +                    continue
 +
 +                # Generalized plan semantics:
@@ -1106,7 +1387,7 @@ index db61354294..669b73fbac 100644
 +                #   (zero-on-nonzero-socket when in ``zero_on_nonzero_nodes``
 +                #   AND the kernel is row-parallel output ``z_shard``)
 +                # - shard-slice tensors in column_parallel_nodes / row_parallel_nodes
-+                if arg_name == x_node:
++                if arg_name in x_nodes:
 +                    # Activation changes every forward: do NOT cache.
 +                    name = _emit_replicate(arg_name, sid, cache=False)
 +                    per_node_arg_names[sid].append(name)
@@ -1208,7 +1489,7 @@ index db61354294..669b73fbac 100644
      # The following methods are for memory management
      def make_buffer_allocation(self, buffer):
          device = buffer.get_device()
-@@ -1831,7 +2483,78 @@ class PythonWrapperCodegen(CodeGen):
+@@ -1831,7 +2743,103 @@ class PythonWrapperCodegen(CodeGen):
      def codegen_exact_buffer_reuse(self, old_name: str, new_name: str, del_line: str):
          return f"{self.declare_maybe_reference}{new_name} = {old_name}{del_line}{self.ending}  {self.comment} reuse"
  
@@ -1239,15 +1520,40 @@ index db61354294..669b73fbac 100644
 +        if not cache or old_name not in cache:
 +            return
 +        per_node_old = cache[old_name]
++        # The naming prefix has to come from the ORIGINAL cache entry
++        # (``_numa_p{plan_id}``), because that is the prefix
++        # ``generate_numa_shard_allocations`` used for the placeholder
++        # allocations this alias is meant to supersede. Keep a reference to it
++        # before the re-clone substitution below rewrites ``per_node_old``.
++        prefix_source = per_node_old
++
++        # If ``old_name`` was all-reduced, its authoritative per-socket view is
++        # the post-reduction re-clone, not whatever the reuse cache now holds.
++        # Aliasing off the re-clones also marks them consumed, which is what
++        # keeps the reduction from being elided as dead code.
++        reduced = getattr(self, "_numa_reduction_reclones", {}).get(old_name)
++        if reduced:
++            per_node_old = reduced
++            for _rn in reduced:
++                self._numa_reclone_consumed.add(_rn)
 +        if not per_node_old:
 +            return
++
++        # Deriving the prefix from the post-reduction re-clones instead yields
++        # ``_numa_ar``, which matches no placeholder. The alias is then never
++        # consumed, the placeholder allocation it should have superseded
++        # survives, and the re-clone becomes dead weight -- a full-tensor
++        # per-socket clone nothing reads. Measured cost of getting this wrong,
++        # GPT-2 117M W=4 (bench_2026-09-25/stage1fix/): 232 _numa_ar_ names of
++        # which 12 dead, versus 96 with none dead; NUMA arm -9.6% at S=2048
++        # and -6.3% at S=4096.
 +
 +        # Extract the naming prefix (e.g. "_numa_p0") from the first cached
 +        # entry so alias names match what generate_numa_shard_allocations
 +        # already emitted as _NUMAFreshAllocLine placeholders.
 +        expected_suffix_0 = f"_{old_name}_n0"
-+        if per_node_old[0].endswith(expected_suffix_0):
-+            prefix = per_node_old[0][: -len(expected_suffix_0)]
++        if prefix_source and prefix_source[0].endswith(expected_suffix_0):
++            prefix = prefix_source[0][: -len(expected_suffix_0)]
 +        else:
 +            prefix = None  # unusual naming; fall back to _as_ style
 +
@@ -1288,7 +1594,7 @@ index db61354294..669b73fbac 100644
          assert old.get_dtype() == new.get_dtype()
          old_name = old.get_name()
          new_name = new.get_name()
-@@ -1839,7 +2562,25 @@ class PythonWrapperCodegen(CodeGen):
+@@ -1839,7 +2847,25 @@ class PythonWrapperCodegen(CodeGen):
          if old_name not in V.graph.get_output_names() and delete_old:
              del_line = f"; {self.make_buffer_free(old)}"
  
@@ -1315,8 +1621,36 @@ index db61354294..669b73fbac 100644
              return self.codegen_exact_buffer_reuse(old_name, new_name, del_line)
  
          reinterpret_view = self.codegen_reinterpret_view(
+@@ -1855,6 +2881,27 @@ class PythonWrapperCodegen(CodeGen):
+                 f"{self.comment} alias",
+             )
+         )
++        if _NUMA_ALIAS_CHAIN:
++            # Parse the ALREADY-GENERATED reference string rather than walking
++            # the IR. Touching layout.view.data (e.g. get_name()) can realize
++            # buffers and assign names, which perturbs Inductor's layout
++            # decisions -- observed as a view_as_complex lowering failure
++            # ("stride divisible by 2") on Gemma at 18 layers / S=512, where a
++            # ConcatKernel came out with stride (131072, 1, 256, 2, 1). A
++            # codegen hook must not influence lowering.
++            try:
++                ref = layout.view.codegen_reference()
++            except Exception:
++                ref = ""
++            m = re.match(
++                r"\s*reinterpret_tensor\(\s*([A-Za-z_]\w*)\s*,\s*"
++                r"(\(.*?\))\s*,\s*(\(.*?\))\s*,\s*([^)]+)\)\s*$",
++                ref or "",
++            )
++            if m:
++                self._numa_alias_parents[name] = (
++                    m.group(1), m.group(2), m.group(3), m.group(4).strip()
++                )
+ 
+     def codegen_allocation(self, buffer: ir.Buffer):
+         name = buffer.get_name()
 diff --git a/torch/_inductor/config.py b/torch/_inductor/config.py
-index 9a5c7180dd..d63b97ed45 100644
+index 9a5c718..d63b97e 100644
 --- a/torch/_inductor/config.py
 +++ b/torch/_inductor/config.py
 @@ -560,6 +560,74 @@ _fuse_ddp_communication_passes: List[Union[Callable[..., None], str]] = [
@@ -1405,10 +1739,10 @@ index 9a5c7180dd..d63b97ed45 100644
  cuda_backend = "triton"
 diff --git a/torch/_inductor/fx_passes/numa_attention_tp.py b/torch/_inductor/fx_passes/numa_attention_tp.py
 new file mode 100644
-index 0000000000..e52e4bfc1c
+index 0000000..e6198b9
 --- /dev/null
 +++ b/torch/_inductor/fx_passes/numa_attention_tp.py
-@@ -0,0 +1,1227 @@
+@@ -0,0 +1,1228 @@
 +"""
 +Megatron-style NUMA tensor-parallel FX pass for attention blocks.
 +
@@ -1458,6 +1792,7 @@ index 0000000000..e52e4bfc1c
 +    clone_meta,
 +    get_compute_shard_id,
 +    get_numa_world_size,
++    merge_global_shard_plan,
 +    resize_node_val_and_tensor_meta,
 +    set_numa_meta,
 +    shape_2d,
@@ -2510,7 +2845,7 @@ index 0000000000..e52e4bfc1c
 +            }
 +            # Persist the latest full plan so wrapper codegen can recover
 +            # semantics even if a backend path drops direct origin metadata.
-+            setattr(config, "_numa_attention_tp_shard_plan", dict(shard_plan))
++            merge_global_shard_plan("_numa_attention_tp_shard_plan", shard_plan)
 +
 +            # Propagate the shard plan to all per-shard slice nodes so
 +            # downstream passes and wrapper codegen can recover the layout
@@ -2638,10 +2973,10 @@ index 0000000000..e52e4bfc1c
 +        _debug("pass done: no graph changes")
 diff --git a/torch/_inductor/fx_passes/numa_gemma_attention_tp.py b/torch/_inductor/fx_passes/numa_gemma_attention_tp.py
 new file mode 100644
-index 0000000000..c6065901c3
+index 0000000..3083657
 --- /dev/null
 +++ b/torch/_inductor/fx_passes/numa_gemma_attention_tp.py
-@@ -0,0 +1,905 @@
+@@ -0,0 +1,932 @@
 +"""NUMA tensor-parallel pass for Gemma-style prefill attention.
 +
 +Targets the post-grad FX graph that ``torch.compile`` produces for a Gemma
@@ -2677,6 +3012,7 @@ index 0000000000..c6065901c3
 +import torch
 +
 +from .. import config
++from .numa_tp_common import merge_global_shard_plan
 +
 +aten = torch.ops.aten
 +
@@ -2831,17 +3167,36 @@ index 0000000000..c6065901c3
 +            pass
 +
 +
-+def _replace_shape_arg(n: torch.fx.Node, *, old_dim: int, new_dim: int, arg_index: int = 1) -> None:
++def _replace_shape_arg(
++    n: torch.fx.Node, *, old_dim: int, new_dim: int, arg_index: int = 1,
++    from_dim: int = 0,
++) -> None:
 +    """Rewrite a list/tuple shape arg on a reshape/expand: any element equal
-+    to ``old_dim`` becomes ``new_dim``. Leaves -1 and other dims alone."""
++    to ``old_dim`` becomes ``new_dim``. Leaves -1 and other dims alone.
++
++    ``from_dim`` is the first AXIS INDEX eligible for rewriting. Matching purely
++    on magnitude mistakes an unrelated axis for the head axis whenever the two
++    happen to share a value, and axis 0 is where that bites: it carries the
++    batch (or B*S), which collides readily. Measured on Gemma 270M, where
++    num_heads=4 and q_size=1024:
++
++        B=4            -> batch 4 matched H_total=4, rewritten to H_shard=1
++                          "shape '[1, 128, 256]' is invalid for input of size 131072"
++        B=2 S=512      -> B*S=1024 matched q_size=1024, rewritten to shard_q=256
++                          "shape '[256, 256]' is invalid for input of size 262144"
++
++    Passing ``from_dim=1`` keeps axis 0 untouched. The one case where axis 0 is
++    genuinely (B*H) and does need rewriting -- the 3D bmm-input reshapes -- is
++    already handled positionally and excluded via ``positionally_rewritten``.
++    """
 +    if len(n.args) <= arg_index:
 +        return
 +    raw = n.args[arg_index]
 +    if not isinstance(raw, (list, tuple)):
 +        return
 +    new_list: List[Any] = []
-+    for v in raw:
-+        if isinstance(v, int) and v == old_dim:
++    for ax, v in enumerate(raw):
++        if ax >= from_dim and isinstance(v, int) and v == old_dim:
 +            new_list.append(new_dim)
 +        else:
 +            new_list.append(v)
@@ -3441,24 +3796,31 @@ index 0000000000..c6065901c3
 +            # AND in the post-bmm1 output collapse [1, S, q_size] and [S, q_size]
 +            # which have tag {q,k,v}. Rewrite whenever "q" is in the tag set.
 +            if has_q_in(tag):
-+                _replace_shape_arg(n, old_dim=q_size, new_dim=shard_q)
++                _replace_shape_arg(n, old_dim=q_size, new_dim=shard_q, from_dim=1)
 +            # Pre-GQA-expand K/V chain: rewrite kv_size and num_kv_heads, but
 +            # only when we sliced Wk/Wv (otherwise K/V replicate, full literals
 +            # remain valid).
 +            if slice_kv and is_kv_only:
-+                _replace_shape_arg(n, old_dim=kv_size, new_dim=shard_kv_size)
++                _replace_shape_arg(n, old_dim=kv_size, new_dim=shard_kv_size, from_dim=1)
 +                if num_kv_heads != shard_kv_heads:
-+                    _replace_shape_arg(n, old_dim=num_kv_heads, new_dim=shard_kv_heads)
++                    _replace_shape_arg(
++                        n, old_dim=num_kv_heads, new_dim=shard_kv_heads, from_dim=1)
 +            # num_heads rewrite applies everywhere (Q 4D shapes, post-GQA-expand
 +            # K/V, post-bmm0 softmax chain, post-bmm1 output collapse).
-+            _replace_shape_arg(n, old_dim=H_total, new_dim=H_shard)
++            _replace_shape_arg(n, old_dim=H_total, new_dim=H_shard, from_dim=1)
 +
 +        sh = _shape(n)
 +        if sh is None:
 +            continue
 +        new_sh: List[int] = []
 +        changed = False
-+        for d in sh:
++        for _ax, d in enumerate(sh):
++            # Axis 0 is batch (or B*S) on every node that reaches here; the
++            # (B*H) case is handled positionally above. Same collision hazard
++            # as _replace_shape_arg, so apply the same guard.
++            if _ax == 0:
++                new_sh.append(d)
++                continue
 +            if has_q_in(tag) and d == q_size:
 +                new_sh.append(shard_q); changed = True; continue
 +            if slice_kv and is_kv_only and d == kv_size:
@@ -3506,7 +3868,7 @@ index 0000000000..c6065901c3
 +        "slice_kv": slice_kv,
 +        "head_dim": head_dim,
 +    }
-+    setattr(config, "_numa_attention_tp_shard_plan", dict(shard_plan))
++    merge_global_shard_plan("_numa_attention_tp_shard_plan", shard_plan)
 +    for n in itertools.chain(wq_shards, wo_shards, wk_shards, wv_shards, [mm_q, mm_k, mm_v, mm_o]):
 +        n.meta["numa_shard_plan"] = shard_plan
 +    return True
@@ -3549,7 +3911,7 @@ index 0000000000..c6065901c3
 +        _debug("pass done: graph updated")
 diff --git a/torch/_inductor/fx_passes/numa_layer_norm_tp.py b/torch/_inductor/fx_passes/numa_layer_norm_tp.py
 new file mode 100644
-index 0000000000..76a8ff8d5d
+index 0000000..76a8ff8
 --- /dev/null
 +++ b/torch/_inductor/fx_passes/numa_layer_norm_tp.py
 @@ -0,0 +1,158 @@
@@ -3713,7 +4075,7 @@ index 0000000000..76a8ff8d5d
 +        _debug("pass done: no layer_norm nodes")
 diff --git a/torch/_inductor/fx_passes/numa_lm_head_tp.py b/torch/_inductor/fx_passes/numa_lm_head_tp.py
 new file mode 100644
-index 0000000000..61952baf45
+index 0000000..61952ba
 --- /dev/null
 +++ b/torch/_inductor/fx_passes/numa_lm_head_tp.py
 @@ -0,0 +1,173 @@
@@ -3892,10 +4254,10 @@ index 0000000000..61952baf45
 +        _debug("pass done: no untagged mm/addmm nodes")
 diff --git a/torch/_inductor/fx_passes/numa_mlp_tp.py b/torch/_inductor/fx_passes/numa_mlp_tp.py
 new file mode 100644
-index 0000000000..57b238bfe0
+index 0000000..74009a5
 --- /dev/null
 +++ b/torch/_inductor/fx_passes/numa_mlp_tp.py
-@@ -0,0 +1,1228 @@
+@@ -0,0 +1,1229 @@
 +from __future__ import annotations
 +
 +import itertools
@@ -3905,6 +4267,7 @@ index 0000000000..57b238bfe0
 +import torch
 +
 +from .. import config
++from .numa_tp_common import merge_global_shard_plan
 +
 +aten = torch.ops.aten
 +
@@ -4763,7 +5126,7 @@ index 0000000000..57b238bfe0
 +        "h": h,
 +        "d": d,
 +    }
-+    setattr(config, "_numa_mlp_tp_shard_plan", dict(shard_plan))
++    merge_global_shard_plan("_numa_mlp_tp_shard_plan", shard_plan)
 +
 +    for sn in itertools.chain(gate_shards, up_shards, down_shards):
 +        sn.meta["numa_shard_plan"] = shard_plan
@@ -5026,7 +5389,7 @@ index 0000000000..57b238bfe0
 +        }
 +        # Persist latest full plan so wrapper codegen can recover semantics even
 +        # if a backend path drops direct origin-node metadata.
-+        setattr(config, "_numa_mlp_tp_shard_plan", dict(shard_plan))
++        merge_global_shard_plan("_numa_mlp_tp_shard_plan", shard_plan)
 +
 +        # Propagate the shard plan to all per-shard slice nodes so downstream
 +        # passes and wrapper codegen can recover the layout from any of them.
@@ -5126,7 +5489,7 @@ index 0000000000..57b238bfe0
 +        _debug("pass done: no graph changes")
 diff --git a/torch/_inductor/fx_passes/numa_residual_tp.py b/torch/_inductor/fx_passes/numa_residual_tp.py
 new file mode 100644
-index 0000000000..07cc4966f7
+index 0000000..07cc496
 --- /dev/null
 +++ b/torch/_inductor/fx_passes/numa_residual_tp.py
 @@ -0,0 +1,198 @@
@@ -5330,10 +5693,10 @@ index 0000000000..07cc4966f7
 +        _debug("pass done: no matching residual adds")
 diff --git a/torch/_inductor/fx_passes/numa_tp_common.py b/torch/_inductor/fx_passes/numa_tp_common.py
 new file mode 100644
-index 0000000000..8bb769021c
+index 0000000..6df4d40
 --- /dev/null
 +++ b/torch/_inductor/fx_passes/numa_tp_common.py
-@@ -0,0 +1,305 @@
+@@ -0,0 +1,449 @@
 +"""
 +Shared helpers for NUMA tensor-parallel FX passes (MLP and attention).
 +
@@ -5639,8 +6002,152 @@ index 0000000000..8bb769021c
 +    out["zero_on_nonzero_nodes"] = zn
 +
 +    return out
++
++
++def _normalize_pp_entries(entries, shard_d):
++    """Return ``(name, dim, shard_size)`` 3-tuples for a plan's node list.
++
++    2-tuple entries implicitly inherit the plan-wide ``shard_d``. Once several
++    blocks share one accumulated plan that implicit value is no longer
++    meaningful -- blocks can have different hidden sizes -- so bind each entry
++    to the ``shard_d`` of the plan it came from before merging.
++    """
++    out = []
++    for entry in entries or []:
++        if len(entry) == 3:
++            name, dim, size = entry
++        else:
++            name, dim = entry
++            size = shard_d
++        out.append((str(name), int(dim), int(size)))
++    return out
++
++
++def merge_global_shard_plan(config_key: str, shard_plan: Dict[str, Any]) -> None:
++    """Accumulate ``shard_plan`` into the graph-wide plan at ``config_key``.
++
++    Wrapper codegen recovers a plan from this slot whenever a kernel loses its
++    origin-node metadata, which template (matmul) kernels routinely do. Every
++    kernel in the graph therefore reads this one slot, so it must describe
++    every block the pass rewrote.
++
++    Overwriting it left only the last block described. Earlier blocks'
++    row-parallel weights were absent from ``row_parallel_nodes``, so the
++    wrapper's ``has_row and not has_col`` test could not recognize their
++    outputs as partial sums, and their cross-socket reductions were never
++    emitted -- silently dropping every shard but one.
++    """
++    new = ensure_generalized_lists(dict(shard_plan))
++    new_shard_d = int(new.get("shard_d", 0))
++    prev = getattr(config, config_key, None)
++
++    merged = dict(new)
++    for key in (
++        "column_parallel_nodes",
++        "row_parallel_nodes",
++    ):
++        merged[key] = _normalize_pp_entries(new.get(key), new_shard_d)
++    for key in ("replicated_nodes", "zero_on_nonzero_nodes"):
++        merged[key] = [str(n) for n in (new.get(key) or [])]
++    # ``x_node`` is the per-block activation input. It is replicated like a
++    # weight but, unlike a weight, changes every forward, so the wrapper must
++    # not hoist its clone into the persistent weight cache. Keeping only the
++    # newest block's name left every earlier block's activation looking like a
++    # weight. Accumulate them all.
++    merged["x_nodes"] = _merge_x_nodes(new, [])
++
++    if isinstance(prev, dict) and int(prev.get("world_size", 0)) >= 2:
++        prev_norm = ensure_generalized_lists(dict(prev))
++        prev_shard_d = int(prev_norm.get("shard_d", 0))
++        for key in ("column_parallel_nodes", "row_parallel_nodes"):
++            seen = {e[0] for e in merged[key]}
++            for entry in _normalize_pp_entries(prev_norm.get(key), prev_shard_d):
++                if entry[0] not in seen:
++                    merged[key].append(entry)
++                    seen.add(entry[0])
++        for key in ("replicated_nodes", "zero_on_nonzero_nodes"):
++            seen = set(merged[key])
++            for name in (prev_norm.get(key) or []):
++                if str(name) not in seen:
++                    merged[key].append(str(name))
++                    seen.add(str(name))
++        merged["x_nodes"] = _merge_x_nodes(prev_norm, merged["x_nodes"])
++
++    setattr(config, config_key, merged)
++
++
++def _merge_x_nodes(plan: Dict[str, Any], into: List[str]) -> List[str]:
++    """Union of ``plan``'s activation-input names into ``into``."""
++    out = list(into)
++    names = list(plan.get("x_nodes") or [])
++    if isinstance(plan.get("x_node"), str):
++        names.append(plan["x_node"])
++    for name in names:
++        if str(name) not in out:
++            out.append(str(name))
++    return out
++
++
++# Every config slot holding an accumulated graph-wide plan, in no
++# significant order -- the merge below is a union.
++GLOBAL_PLAN_KEYS = (
++    "_numa_attention_tp_shard_plan",
++    "_numa_mlp_tp_shard_plan",
++)
++
++
++def merged_global_shard_plan() -> Optional[Dict[str, Any]]:
++    """Union of every pass's accumulated graph-wide plan, or ``None``.
++
++    Template (matmul) kernels routinely lose their origin-node metadata during
++    scheduling, so wrapper codegen falls back to a graph-wide plan to classify
++    their arguments. Reading a single pass's slot and ignoring the others is
++    not a fallback but a misclassification: with attention and MLP TP both
++    enabled, the MLP's ``addmm`` templates were described by the *attention*
++    plan, in which no MLP weight appears. Every MLP argument then took the
++    "replicate unknown tensor" path -- no column/row slicing -- and the
++    ``has_row and not has_col`` test saw no row-parallel weight, so the MLP's
++    all-reduce was never emitted. The sublayer silently collapsed to shard 0.
++    Either pass alone was correct, which is why this only showed up in the
++    combined configuration the benchmarks actually run.
++
++    Node names are unique within an FX graph, so unioning the generalized
++    lists is unambiguous. Per-entry shard sizes (3-tuples) let plans with
++    different ``shard_d`` merge without losing their own chunk size.
++    """
++    merged: Optional[Dict[str, Any]] = None
++    for key in GLOBAL_PLAN_KEYS:
++        plan = getattr(config, key, None)
++        if not isinstance(plan, dict) or int(plan.get("world_size", 0)) < 2:
++            continue
++        norm = ensure_generalized_lists(dict(plan))
++        shard_d = int(norm.get("shard_d", 0))
++        if merged is None:
++            merged = dict(norm)
++            for k in ("column_parallel_nodes", "row_parallel_nodes"):
++                merged[k] = _normalize_pp_entries(norm.get(k), shard_d)
++            for k in ("replicated_nodes", "zero_on_nonzero_nodes"):
++                merged[k] = [str(n) for n in (norm.get(k) or [])]
++            merged["x_nodes"] = _merge_x_nodes(norm, [])
++            continue
++        for k in ("column_parallel_nodes", "row_parallel_nodes"):
++            seen = {e[0] for e in merged[k]}
++            for entry in _normalize_pp_entries(norm.get(k), shard_d):
++                if entry[0] not in seen:
++                    merged[k].append(entry)
++                    seen.add(entry[0])
++        for k in ("replicated_nodes", "zero_on_nonzero_nodes"):
++            seen = set(merged[k])
++            for name in (norm.get(k) or []):
++                if str(name) not in seen:
++                    merged[k].append(str(name))
++                    seen.add(str(name))
++        merged["x_nodes"] = _merge_x_nodes(norm, merged["x_nodes"])
++        if not int(merged.get("shard_d", 0)):
++            merged["shard_d"] = shard_d
++    return merged
 diff --git a/torch/_inductor/fx_passes/post_grad.py b/torch/_inductor/fx_passes/post_grad.py
-index 064c6de94a..680a389d3e 100644
+index 064c6de..680a389 100644
 --- a/torch/_inductor/fx_passes/post_grad.py
 +++ b/torch/_inductor/fx_passes/post_grad.py
 @@ -49,6 +49,12 @@ from .b2b_gemm import B2B_GEMM_PASS
@@ -5710,7 +6217,7 @@ index 064c6de94a..680a389d3e 100644
  
  
 diff --git a/torch/_inductor/ir.py b/torch/_inductor/ir.py
-index eb48a11930..f8714abab4 100644
+index eb48a11..f8714ab 100644
 --- a/torch/_inductor/ir.py
 +++ b/torch/_inductor/ir.py
 @@ -4598,7 +4598,22 @@ class ExternKernel(InputsKernel):
@@ -5738,7 +6245,7 @@ index eb48a11930..f8714abab4 100644
          unbacked_bindings: Optional[Dict[sympy.Symbol, pytree.KeyPath]] = None
          if shape_env := V.fake_mode.shape_env:
 diff --git a/torch/_inductor/kernel/bmm.py b/torch/_inductor/kernel/bmm.py
-index 428ff06d4a..b3fb6f667d 100644
+index 428ff06..cdcd677 100644
 --- a/torch/_inductor/kernel/bmm.py
 +++ b/torch/_inductor/kernel/bmm.py
 @@ -1,4 +1,5 @@
@@ -5747,7 +6254,7 @@ index 428ff06d4a..b3fb6f667d 100644
  import logging
  
  import torch
-@@ -13,6 +14,7 @@ from ..utils import (
+@@ -13,11 +14,18 @@ from ..utils import (
      ceildiv as cdiv,
      use_aten_gemm_kernels,
      use_cutlass_template,
@@ -5755,7 +6262,40 @@ index 428ff06d4a..b3fb6f667d 100644
      use_triton_template,
  )
  from ..virtualized import V
-@@ -147,7 +149,12 @@ def tuned_bmm(mat1, mat2, *, layout=None):
+ from .mm import _is_static_problem
+-from .mm_common import addmm_epilogue, mm_args, mm_configs, mm_options
++from .mm_common import (
++    addmm_epilogue,
++    mm_args,
++    mm_configs,
++    mm_options,
++    needs_int64_offsets,
++)
+ 
+ 
+ log = logging.getLogger(__name__)
+@@ -71,8 +79,18 @@ bmm_template = TritonTemplate(
+     rk = tl.arange(0, BLOCK_K)
+ 
+     idx_q = tl.program_id(1)  # batch dimension for BMM
+-    A = A + (ram[:, None] * stride_am + rk[None, :] * stride_ak + idx_q*stride_aq)
+-    B = B + (rk[:, None] * stride_bk + rbn[None, :] * stride_bn + idx_q*stride_bq)
++    # A_LARGE / B_LARGE are set when the operand's byte extent leaves int32
++    # range. Triton-CPU scales an element offset by the element size in the
++    # offset's own width before sign-extending it, so int32 offsets wrap for
++    # operands above 2 GiB and the gather below reads an unmapped address.
++    if A_LARGE:
++        A = A + (ram[:, None].to(tl.int64) * stride_am + rk[None, :].to(tl.int64) * stride_ak + idx_q.to(tl.int64) * stride_aq)
++    else:
++        A = A + (ram[:, None] * stride_am + rk[None, :] * stride_ak + idx_q*stride_aq)
++    if B_LARGE:
++        B = B + (rk[:, None].to(tl.int64) * stride_bk + rbn[None, :].to(tl.int64) * stride_bn + idx_q.to(tl.int64) * stride_bq)
++    else:
++        B = B + (rk[:, None] * stride_bk + rbn[None, :] * stride_bn + idx_q*stride_bq)
+ 
+     acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
+     for k in range(K, 0, -BLOCK_K):
+@@ -147,12 +165,19 @@ def tuned_bmm(mat1, mat2, *, layout=None):
      # options to tune from
      choices = [aten_bmm.bind((mat1, mat2), layout)] if use_aten_gemm_kernels() else []
      if use_triton_template(layout):
@@ -5769,8 +6309,24 @@ index 428ff06d4a..b3fb6f667d 100644
              bmm_template.maybe_append_choice(
                  choices,
                  input_nodes=(mat1, mat2),
+                 layout=layout,
+                 **mm_options(config, m, n, k, layout),
++                A_LARGE=needs_int64_offsets(mat1),
++                B_LARGE=needs_int64_offsets(mat2),
+             )
+     static_shape, is_nonzero = _is_static_problem([mat1, mat2], layout)
+     if static_shape and is_nonzero and use_cutlass_template(layout, m, n, k):
+@@ -185,6 +210,8 @@ def tuned_baddbmm(inp, mat1, mat2, *, alpha=1, beta=1, layout=None):
+                 input_nodes=(inp, mat1, mat2),
+                 layout=layout,
+                 **mm_options(config, m, n, k, layout),
++                A_LARGE=needs_int64_offsets(mat1),
++                B_LARGE=needs_int64_offsets(mat2),
+                 prefix_args=1,
+                 epilogue_fn=addmm_epilogue(layout.dtype, alpha, beta),
+             )
 diff --git a/torch/_inductor/kernel/mm.py b/torch/_inductor/kernel/mm.py
-index 03cc25d3f9..daef5d44b2 100644
+index 03cc25d..daef5d4 100644
 --- a/torch/_inductor/kernel/mm.py
 +++ b/torch/_inductor/kernel/mm.py
 @@ -1,5 +1,6 @@
@@ -5815,8 +6371,53 @@ index 03cc25d3f9..daef5d44b2 100644
              mm_template.maybe_append_choice(
                  choices,
                  input_nodes=(inp_expanded, mat1, mat2),
+diff --git a/torch/_inductor/kernel/mm_common.py b/torch/_inductor/kernel/mm_common.py
+index 21ba6c1..c1c34dc 100644
+--- a/torch/_inductor/kernel/mm_common.py
++++ b/torch/_inductor/kernel/mm_common.py
+@@ -388,6 +388,40 @@ def acc_type(dtype):
+     return f"tl.{dtype}".replace("torch.", "")
+ 
+ 
++def needs_int64_offsets(node) -> bool:
++    """Whether a GEMM template must compute this operand's offsets in int64.
++
++    Triton-CPU lowers ``tt.addptr`` on a tensor of pointers by multiplying the
++    element offset by the element size *in the offset's own width*, and only
++    sign-extends the product afterwards (triton-cpu
++    ``third_party/cpu/lib/TritonToTritonCPU/ConvertPtrOps.cpp``,
++    ``AddPtrOpConversion``). With int32 offsets that byte product wraps
++    negative as soon as an operand exceeds 2 GiB, so the template's gather
++    load reads an unmapped address -- a segfault, not a wrong number.
++
++    Inductor's own ``can_use_32bit_indexing`` does not catch this because it
++    bounds element *counts*: a 3 GiB float32 tensor is 805M elements, well
++    inside int32. The bound that actually binds here is the byte offset.
++    """
++    import os
++
++    if os.environ.get("INDUCTOR_FORCE_I64_OFFSETS") == "1":
++        # Test hook: exercise the int64 offset path on an operand small enough
++        # to also run through the int32 path, so the two can be compared.
++        return True
++    int_max = torch.iinfo(torch.int32).max
++    try:
++        size = node.get_layout().storage_size()
++    except (AttributeError, NotImplementedError):
++        size = node.get_numel()
++    try:
++        size = int(V.graph.sizevars.size_hint(size))
++    except Exception:
++        # Extent not known at compile time: widen rather than risk the fault.
++        return True
++    return size * node.get_dtype().itemsize > int_max
++
++
+ def mm_options(config, sym_m, sym_n, sym_k, layout, b_prologue_cast_type=None):
+     """
+     Common options to matmul triton templates.
 diff --git a/torch/_inductor/lowering.py b/torch/_inductor/lowering.py
-index c377b10762..061a017360 100644
+index c377b10..061a017 100644
 --- a/torch/_inductor/lowering.py
 +++ b/torch/_inductor/lowering.py
 @@ -537,12 +537,22 @@ def make_pointwise(
@@ -5866,7 +6467,7 @@ index c377b10762..061a017360 100644
      return Pointwise.create(
          device=x.get_device(),
 diff --git a/torch/_inductor/runtime/triton_heuristics.py b/torch/_inductor/runtime/triton_heuristics.py
-index 6e4a628d71..57e567cb23 100644
+index 6e4a628..57e567c 100644
 --- a/torch/_inductor/runtime/triton_heuristics.py
 +++ b/torch/_inductor/runtime/triton_heuristics.py
 @@ -385,12 +385,30 @@ class CachingAutotuner(KernelInterface):
@@ -5954,7 +6555,7 @@ index 6e4a628d71..57e567cb23 100644
                  )
                  runner(*launch_args, *args)
 diff --git a/torch/_inductor/utils.py b/torch/_inductor/utils.py
-index fdb7f1a9d1..4c9e86a27f 100644
+index fdb7f1a..4c9e86a 100644
 --- a/torch/_inductor/utils.py
 +++ b/torch/_inductor/utils.py
 @@ -100,6 +100,27 @@ def _align(nbytes):
@@ -6033,7 +6634,7 @@ index fdb7f1a9d1..4c9e86a27f 100644
  
  class DebugDirManager:
 diff --git a/torch/_refs/__init__.py b/torch/_refs/__init__.py
-index 4ed5aa76cf..f6513f26a1 100644
+index 4ed5aa7..f6513f2 100644
 --- a/torch/_refs/__init__.py
 +++ b/torch/_refs/__init__.py
 @@ -1954,8 +1954,31 @@ def where(
@@ -6070,7 +6671,7 @@ index 4ed5aa76cf..f6513f26a1 100644
      return result
  
 diff --git a/torch/_tensor_docs.py b/torch/_tensor_docs.py
-index 1ee0548eb1..77770d0730 100644
+index 1ee0548..77770d0 100644
 --- a/torch/_tensor_docs.py
 +++ b/torch/_tensor_docs.py
 @@ -1165,10 +1165,10 @@ Alias for :meth:`~Tensor.clamp_`.
@@ -6088,7 +6689,7 @@ index 1ee0548eb1..77770d0730 100644
  
  add_docstr_all(
 diff --git a/torch/_torch_docs.py b/torch/_torch_docs.py
-index 5eeced5dec..147f5d6dd0 100644
+index 5eeced5..147f5d6 100644
 --- a/torch/_torch_docs.py
 +++ b/torch/_torch_docs.py
 @@ -2716,7 +2716,7 @@ Example::
@@ -6113,7 +6714,7 @@ index 5eeced5dec..147f5d6dd0 100644
  )
  
 diff --git a/torch/csrc/cpu/Module.cpp b/torch/csrc/cpu/Module.cpp
-index 84eb864d2c..acbe89b3e1 100644
+index 84eb864..acbe89b 100644
 --- a/torch/csrc/cpu/Module.cpp
 +++ b/torch/csrc/cpu/Module.cpp
 @@ -1,4 +1,7 @@
@@ -6170,7 +6771,7 @@ index 84eb864d2c..acbe89b3e1 100644
  
  } // namespace torch::cpu
 diff --git a/torch/csrc/lazy/ts_backend/ts_native_functions.cpp b/torch/csrc/lazy/ts_backend/ts_native_functions.cpp
-index cc083f6218..739dbcc663 100644
+index cc083f6..739dbcc 100644
 --- a/torch/csrc/lazy/ts_backend/ts_native_functions.cpp
 +++ b/torch/csrc/lazy/ts_backend/ts_native_functions.cpp
 @@ -54,7 +54,11 @@ std::optional<torch::lazy::BackendDevice> GetLtcDevice(
