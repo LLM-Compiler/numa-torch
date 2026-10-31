@@ -11,6 +11,12 @@ PyTorch fork carrying the Inductor NUMA-TP passes. Build in that order.
     export NUMA_ROOT=$HOME/numa-torch-build
     mkdir -p "$NUMA_ROOT" && cd "$NUMA_ROOT"
 
+Each component is cloned directly at its pinned ref below. Do not clone the
+artifact repo with `--recurse-submodules`: the PyTorch and LLVM histories are
+very large, and nothing here needs them. The submodules under `third_party/`
+exist to record the exact revisions and to make the modified trees browsable on
+GitHub; see "Getting the modified source" in `README.md`.
+
 ## Requirements
 
 A multi-socket x86-64 machine with NUMA enabled. These results cannot be
@@ -28,7 +34,7 @@ Check your topology before starting:
 Pinned to `adba14acea99cc6a17d837763a3248c9d4a2fadf`. This is stock upstream;
 there is no NUMA-Torch patch to apply here.
 
-    git clone https://github.com/llvm/llvm-project "$NUMA_ROOT/llvm-project"
+    git clone --filter=blob:none https://github.com/llvm/llvm-project "$NUMA_ROOT/llvm-project"
     cd "$NUMA_ROOT/llvm-project"
     git checkout adba14acea99cc6a17d837763a3248c9d4a2fadf
     mkdir build && cd build
@@ -45,9 +51,9 @@ there is no NUMA-Torch patch to apply here.
 
 ## 2. Triton-CPU with the NUMA launcher
 
-    git clone https://github.com/LLM-Compiler/triton-cpu "$NUMA_ROOT/triton-cpu"
+    git clone --depth 1 --branch v1.0-paper \
+      https://github.com/LLM-Compiler/triton-cpu "$NUMA_ROOT/triton-cpu"
     cd "$NUMA_ROOT/triton-cpu"
-    git checkout v1.0-paper
     pip install -e python
 
 The NUMA work is confined to `third_party/cpu/backend/driver.py`
@@ -56,16 +62,14 @@ The NUMA work is confined to `third_party/cpu/backend/driver.py`
 
 ## 3. PyTorch with the Inductor NUMA-TP passes
 
-Pick the tag matching the results you want:
+One revision covers every platform: `v1.0-paper-four-socket`. It is a strict
+superset of the earlier `v1.0-paper-dual-socket` (0 commits behind) and adds the
+row-parallel all-reduce correctness fix, so build it for 2-socket and 4-socket
+hosts alike.
 
-| Tag | Reproduces |
-|---|---|
-| `v1.0-paper-dual-socket` | Fig. 2, Fig. 7, Fig. 8 (dual-socket Haswell, Cascade Lake) |
-| `v1.0-paper-four-socket` | Fig. 9, Fig. 10 (four-socket Haswell-EX) |
-
-    git clone https://github.com/LLM-Compiler/pytorch "$NUMA_ROOT/pytorch"
+    git clone --depth 1 --branch v1.0-paper-four-socket \
+      https://github.com/LLM-Compiler/pytorch "$NUMA_ROOT/pytorch"
     cd "$NUMA_ROOT/pytorch"
-    git checkout v1.0-paper-dual-socket      # or v1.0-paper-four-socket
     pip install -r requirements.txt
 
     export USE_NUMA=1
